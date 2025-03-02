@@ -1,17 +1,14 @@
 import logging
-import os
 from datetime import datetime, timezone
 from typing import Optional
 
 import sqlalchemy as sql
-from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
-
-load_dotenv()
 
 
 # Configure logging
@@ -22,21 +19,29 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class Config:
-    DB_USER = os.getenv('DB_USER')
-    DB_PASSWORD = os.getenv('DB_PASSWORD')
-    DB_HOST = os.getenv('DB_HOST')
-    DB_PORT = os.getenv('DB_PORT')
-    DB_NAME = os.getenv('DB_NAME')
+class DBSettings(BaseSettings):
+    DB_USER: str = ''
+    DB_PASSWORD: str = ''
+    DB_HOST: str = ''
+    DB_PORT: int = 5432
+    DB_NAME: str = ''
+
+    model_config = SettingsConfigDict(
+        env_file='env/db',
+        env_file_encoding='utf-8',
+    )
+
+
+db_settings = DBSettings()
 
 
 DATABASE_URL = URL.create(
     drivername='postgresql',
-    username=Config.DB_USER,
-    password=Config.DB_PASSWORD,
-    host=Config.DB_HOST,
-    port=Config.DB_PORT,
-    database=Config.DB_NAME
+    username=db_settings.DB_USER,
+    password=db_settings.DB_PASSWORD,
+    host=db_settings.DB_HOST,
+    port=db_settings.DB_PORT,
+    database=db_settings.DB_NAME
 )
 
 
@@ -44,11 +49,11 @@ class Database:
     engine = sql.create_engine(
         URL.create(
             drivername='postgresql',
-            username=Config.DB_USER,
-            password=Config.DB_PASSWORD,
-            host=Config.DB_HOST,
-            port=Config.DB_PORT,
-            database=Config.DB_NAME
+            username=db_settings.DB_USER,
+            password=db_settings.DB_PASSWORD,
+            host=db_settings.DB_HOST,
+            port=db_settings.DB_PORT,
+            database=db_settings.DB_NAME
         )
     )
     SessionLocal = sessionmaker(
@@ -63,10 +68,10 @@ class Database:
         temp_engine = sql.create_engine(
             URL.create(
                 drivername='postgresql',
-                username=Config.DB_USER,
-                password=Config.DB_PASSWORD,
-                host=Config.DB_HOST,
-                port=Config.DB_PORT,
+                username=db_settings.DB_USER,
+                password=db_settings.DB_PASSWORD,
+                host=db_settings.DB_HOST,
+                port=db_settings.DB_PORT,
                 database='postgres',
             )
         )
@@ -75,12 +80,14 @@ class Database:
             result = conn.execute(
                 sql.text(
                     "SELECT 1 FROM pg_database WHERE datname='{0}'".format(
-                        Config.DB_NAME
+                        db_settings.DB_NAME
                     )
                 )
             )
             if not result.fetchone():
-                conn.execute(sql.text(f'CREATE DATABASE {Config.DB_NAME}'))
+                conn.execute(
+                    sql.text(f'CREATE DATABASE {db_settings.DB_NAME}')
+                )
         temp_engine.dispose()
 
 

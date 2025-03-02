@@ -1,17 +1,12 @@
-import os
-
 import base64
 import hashlib
 import hmac
 import logging
 
 import boto3
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-
-
-load_dotenv()
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 logging.basicConfig(
@@ -21,25 +16,33 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class Settings:
-    COGNITO_USER_POOL_ID = os.getenv('COGNITO_USER_POOL_ID')
-    COGNITO_CLIENT_ID = os.getenv('COGNITO_CLIENT_ID')
-    COGNITO_REGION = os.getenv('COGNITO_REGION')
-    COGNITO_CLIENT_SECRET = os.getenv('COGNITO_CLIENT_SECRET')
+class AuthSettings(BaseSettings):
+    COGNITO_USER_POOL_ID: str = ''
+    COGNITO_CLIENT_ID: str = ''
+    COGNITO_REGION: str = ''
+    COGNITO_CLIENT_SECRET: str = ''
+
+    model_config = SettingsConfigDict(
+        env_file='env/cognito',
+        env_file_encoding='utf-8',
+    )
+
+
+settings = AuthSettings()
     
 
 app = FastAPI()
 cognito_client = boto3.client(
     'cognito-idp',
-    region_name=Settings.COGNITO_REGION,
+    region_name=settings.COGNITO_REGION,
 )
 
 
 def compute_secret_hash(username: str) -> str:
-    if not Settings.COGNITO_CLIENT_SECRET:
-        raise ValueError('COGNITO_CLIENT_SECRET is missing')
-    message = (username + str(Settings.COGNITO_CLIENT_ID)).encode('utf-8')
-    secret = Settings.COGNITO_CLIENT_SECRET.encode('utf-8')
+    if not settings.COGNITO_CLIENT_SECRET:
+        raise ValueError('COGNITO_CLIENT_SECRET is missing.')
+    message = (username + str(settings.COGNITO_CLIENT_ID)).encode('utf-8')
+    secret = settings.COGNITO_CLIENT_SECRET.encode('utf-8')
     dig = hmac.new(
         key=secret,
         msg=message,
@@ -58,7 +61,7 @@ def register(user: User):
     logger.info(f'Received register request for {user.username}')
     try:
         response = cognito_client.sign_up(
-            ClientId=Settings.COGNITO_CLIENT_ID,
+            ClientId=settings.COGNITO_CLIENT_ID,
             SecretHash=compute_secret_hash(user.username),
             Username=user.username,
             Password=user.password,
@@ -86,7 +89,7 @@ def confirm(user: User, confirmation_code: str):
     logger.info(f'Received confirm request for {user.username}')
     try:
         response = cognito_client.confirm_sign_up(
-            ClientId=Settings.COGNITO_CLIENT_ID,
+            ClientId=settings.COGNITO_CLIENT_ID,
             Username=user.username,
             ConfirmationCode=confirmation_code,
         )
@@ -110,7 +113,7 @@ def login(user: User):
     logger.info(f'Received login request for {user.username}')
     try:
         response = cognito_client.initiate_auth(
-            ClientId=Settings.COGNITO_CLIENT_ID,
+            ClientId=settings.COGNITO_CLIENT_ID,
             AuthFlow='USER_PASSWORD_AUTH',
             AuthParameters={
                 'USERNAME': user.username,
