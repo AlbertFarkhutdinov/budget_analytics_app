@@ -42,6 +42,7 @@ class CognitoClient:
         return base64.b64encode(dig).decode('utf-8')
 
     def register_user(self, username: str, password: str):
+        logging.info(f'Registering user: {username}')
         try:
             response = self.client.sign_up(
                 ClientId=self.settings.COGNITO_CLIENT_ID,
@@ -68,11 +69,13 @@ class CognitoClient:
             )
 
     def confirm_user(self, username: str, confirmation_code: str):
+        logging.info(f'Confirming user: {username}, code: {confirmation_code}')
         try:
             response = self.client.confirm_sign_up(
                 ClientId=self.settings.COGNITO_CLIENT_ID,
                 Username=username,
                 ConfirmationCode=confirmation_code,
+                SecretHash=self.compute_secret_hash(username),
             )
             return {'message': 'User confirmed'}
         except self.client.exceptions.CodeMismatchException:
@@ -87,6 +90,7 @@ class CognitoClient:
             )
 
     def login_user(self, username: str, password: str):
+        logging.info(f'Logging user: {username}')
         try:
             response = self.client.initiate_auth(
                 ClientId=self.settings.COGNITO_CLIENT_ID,
@@ -117,7 +121,7 @@ class CognitoClient:
                 detail='User is not confirmed.',
             )
         except Exception as exc:
-            logger.error(f'Login failed: {exc}')
+            logging.error(f'Login failed: {exc}')
             raise HTTPException(
                 status_code=500,
                 detail=str(exc),
@@ -127,6 +131,7 @@ class CognitoClient:
 class User(BaseModel):
     username: str
     password: str
+    confirmation_code: str = ''
 
 
 logging.basicConfig(
@@ -142,17 +147,17 @@ app = FastAPI()
 
 @app.post('/auth/register')
 def register(user: User):
-    logger.info(f'Received register request for {user.username}')
+    logging.info(f'Received register request for {user.username}')
     return cognito_client.register_user(user.username, user.password)
 
 
 @app.post('/auth/confirm')
-def confirm(user: User, confirmation_code: str):
-    logger.info(f'Received confirm request for {user.username}')
-    return cognito_client.confirm_user(user.username, confirmation_code)
+def confirm(user: User):
+    logging.info(f'Received confirm request for {user.username}')
+    return cognito_client.confirm_user(user.username, user.confirmation_code)
 
 
 @app.post('/auth/login')
 def login(user: User):
-    logger.info(f'Received login request for {user.username}')
+    logging.info(f'Received login request for {user.username}')
     return cognito_client.login_user(user.username, user.password)

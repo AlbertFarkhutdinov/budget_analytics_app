@@ -7,6 +7,7 @@ import streamlit as st
 class APIClient:
     """Handles API requests."""
     API_BASE_URL = 'http://127.0.0.1:8000'
+    TIMEOUT = 10
 
     @classmethod
     def make_request(
@@ -16,13 +17,24 @@ class APIClient:
         data=None,
     ):
         """Unified method for handling API requests."""
-        response = requests.request(
-            method=method,
-            json=data,
-            url=f'{cls.API_BASE_URL}{endpoint}',
-            headers={'Content-Type': 'application/json'},
-        )
-        return response.json()
+        url = f'{cls.API_BASE_URL}{endpoint}'
+        response = None
+        try:
+            response = requests.request(
+                method=method,
+                json=data,
+                url=url,
+                headers={'Content-Type': 'application/json'},
+                timeout=cls.TIMEOUT,
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as exc:
+            logging.error(f'API request failed: {exc}')
+            try:
+                return response.json()
+            except AttributeError:
+                return {'detail': 'Failed to connect to the server.'}
 
     @classmethod
     def register_user(
@@ -30,11 +42,12 @@ class APIClient:
         username: str,
         password: str,
     ):
+        logging.info(f'Registering user: {username}')
         response = cls.make_request(
             endpoint='/auth/register',
             data={
-                'username': username,
-                'password': password,
+                'username': username.strip(),
+                'password': password.strip(),
             },
         )
         return response
@@ -43,14 +56,16 @@ class APIClient:
     def confirm_user(
         cls,
         username: str,
+        password: str,
         confirmation_code: str,
     ):
-        logger.info(f'confirm_user({username=}, {confirmation_code=})')
+        logging.info(f'Confirming user: {username}, code: {confirmation_code}')
         response = cls.make_request(
             endpoint='/auth/confirm',
             data={
-                'username': username,
-                'confirmation_code': confirmation_code,
+                'username': username.strip(),
+                'password': password.strip(),
+                'confirmation_code': confirmation_code.strip(),
             },
         )
         return response
@@ -61,9 +76,13 @@ class APIClient:
         username: str,
         password: str,
     ):
+        logging.info(f'Logging user: {username}')
         response = cls.make_request(
             endpoint='/auth/login',
-            data={'username': username, 'password': password},
+            data={
+                'username': username.strip(),
+                'password': password.strip(),
+            },
         )
         return response
 
@@ -88,27 +107,31 @@ class AuthApp:
                 st.error(response['detail'])
                 return
             st.success('User registered, confirm the email')
-            confirmation_code = st.text_input(
-                'Enter confirmation code',
-                max_chars=6,
+
+        confirmation_code = st.text_input(
+            'Enter confirmation code',
+            max_chars=6,
+        )
+        logging.info(f'After text input {confirmation_code=})')
+        confirm_clicked = st.button('Confirm')
+        if confirm_clicked:
+            logging.info(f'After button {confirmation_code=})')
+            if not confirmation_code:
+                st.error('Confirmation code cannot be empty.')
+                return
+            confirm_response = APIClient.confirm_user(
+                username=self.username,
+                password=self.password,
+                confirmation_code=confirmation_code,
             )
-            logger.info(f'After text input {confirmation_code=})')
-            if st.button('Confirm'):
-                logger.info(f'After button {confirmation_code=})')
-                if not confirmation_code:
-                    st.error('Confirmation code cannot be empty.')
-                    return
-                confirm_response = APIClient.confirm_user(
-                    username=self.username,
-                    confirmation_code=confirmation_code,
-                )
-                if 'detail' in confirm_response:
-                    st.error(confirm_response['detail'])
-                    return
-                st.success('User confirmed. You can now log in.')
+            if 'detail' in confirm_response:
+                st.error(confirm_response['detail'])
+                return
+            st.success('User confirmed. You can now log in.')
 
     def login(self):
-        if st.button('Log in'):
+        login_clicked = st.button('Login')
+        if login_clicked:
             if not self.username or not self.password:
                 st.error('Username and password cannot be empty.')
                 return
