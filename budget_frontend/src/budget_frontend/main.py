@@ -11,9 +11,31 @@ class BudgetAnalyticsApp:
         self.password = ''
 
     def get_headers(self):
-        return {'Authorization': f'Bearer {self.token}'}
+        """Return authorization headers if the user is logged in."""
+        if self.token:
+            return {'Authorization': f'Bearer {self.token}'}
+        return {}
+
+    def _make_request(self, method, endpoint, data=None):
+        """Unified method for handling API requests."""
+        url = f'{API_BASE_URL}{endpoint}'
+        headers = self.get_headers()
+
+        try:
+            response = requests.request(
+                method=method, 
+                url=url, 
+                json=data, 
+                headers=headers,
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            st.error(f'Request failed: {e}')
+            return None
 
     def authenticate_user(self):
+        """Handles user authentication via the sidebar."""
         st.sidebar.title('Authentication')
         self.username = st.sidebar.text_input('e-mail')
         self.password = st.sidebar.text_input('password', type='password')
@@ -24,29 +46,41 @@ class BudgetAnalyticsApp:
             self.login()
 
     def register(self):
-        response = requests.post(
-            url=f'{API_BASE_URL}/auth/register',
-            json={'username': self.username, 'password': self.password},
-        )
-        if response.status_code == 200:
-            st.sidebar.success(response.json())
-        else:
-            error_msg = response.json().get("detail", "Unknown error")
-            st.sidebar.error(f'Registration failed: {error_msg}')
+        """Handles user registration."""
+        if not self.username or not self.password:
+            st.sidebar.error('Username and password cannot be empty.')
+            return
+        response = self._make_request(
+            method='POST',
+            endpoint='/auth/register',
+            data={
+                'username': self.username, 
+                'password': self.password,
+            })
+        if response:
+            st.sidebar.success(
+                'User registered successfully. Confirm your email.',
+            )
 
     def login(self):
-        response = requests.post(
-            url=f'{API_BASE_URL}/auth/login',
-            json={'username': self.username, 'password': self.password},
-        )
-        if response.status_code == 200:
-            self.token = response.json()['access_token']
-            st.session_state['token'] = self.token
-            st.sidebar.success('Logged in successfully')
-        else:
-            st.sidebar.error('Login failed')
+        """Handles user login."""
+        response = self._make_request(
+            method='POST',
+            endpoint='/auth/login',
+            data={
+                'username': self.username, 
+                'password': self.password,
+            })
+        if response:
+            self.token = response.get('access_token')
+            if self.token:
+                st.session_state['token'] = self.token
+                st.sidebar.success('Logged in successfully')
+            else:
+                st.sidebar.error('Login failed: Invalid response')
 
     def add_budget_entry(self):
+        """Handles adding a budget entry."""
         st.header('Add Budget Entry')
         date = st.date_input('Date')
         shop = st.text_input('Shop')
@@ -66,34 +100,34 @@ class BudgetAnalyticsApp:
                 'person': person,
                 'currency': currency,
             }
-            response = requests.post(
-                url=f'{API_BASE_URL}/entries/',
-                json=entry,
-                headers=self.get_headers(),
+            response = self._make_request(
+                method='POST', 
+                endpoint='/entries/', 
+                data=entry,
             )
-            if response.status_code == 200:
+            if response:
                 st.success('Entry added successfully')
-            else:
-                st.error('Failed to add entry')
 
     def view_budget_entries(self):
+        """Handles viewing budget entries."""
         st.header('Budget Entries')
         if st.button('Load Entries'):
-            response = requests.get(
-                url=f'{API_BASE_URL}/entries/',
-                headers=self.get_headers(),
+            entries = self._make_request(
+                method='GET',
+                endpoint='/entries/',
             )
-            if response.status_code == 200:
-                entries = response.json()
+            if entries:
                 st.table(entries)
-            else:
-                st.error('Failed to load entries')
 
     def run(self):
+        """Runs the Streamlit app."""
         st.title('Budget Analytics')
         self.authenticate_user()
-        self.add_budget_entry()
-        self.view_budget_entries()
+        if self.token:
+            self.add_budget_entry()
+            self.view_budget_entries()
+        else:
+            st.warning('Please log in to manage budget entries.')
 
 
 if __name__ == '__main__':
