@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
 import os
-
+import base64
 import boto3
 import jwt
+import hashlib
+import hmac
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -11,44 +13,98 @@ import sqlalchemy as sql
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 
-load_dotenv()  # Load environment variables from .env
-
-# Database settings
-DB_USER = os.getenv('DB_USER', 'user')
-DB_PASSWORD = os.getenv('DB_PASSWORD', 'password')
-DB_ENDPOINT = os.getenv('DB_ENDPOINT', 'rds-instance.amazonaws.com')
-DB_PORT = os.getenv('DB_PORT', '5432')
-DB_NAME = os.getenv('DB_NAME', 'budget_db')
-
-DATABASE_URL = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_ENDPOINT}:{DB_PORT}'
+load_dotenv()
 
 
-# Ensure the database exists
-def create_database():
-    temp_engine = sql.create_engine(f'{DATABASE_URL}/postgres')
-    with temp_engine.connect() as conn:
-        conn.execute(sql.text("COMMIT"))
-        result = conn.execute(
-            sql.text(f"SELECT 1 FROM pg_database WHERE datname='{DB_NAME}'")
-        )
-        if not result.fetchone():
-            conn.execute(sql.text(f'CREATE DATABASE {DB_NAME}'))
-    temp_engine.dispose()
+class Config:
+    DB_USER = os.getenv('DB_USER', 'user')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', 'password')
+    DB_HOST = os.getenv('DB_HOST', 'rds-instance.amazonaws.com')
+    DB_PORT = os.getenv('DB_PORT', '5432')
+    DB_NAME = os.getenv('DB_NAME', 'budget_db')
+    COGNITO_USER_POOL_ID = os.getenv('COGNITO_USER_POOL_ID')
+    COGNITO_CLIENT_ID = os.getenv('COGNITO_CLIENT_ID')
+    COGNITO_CLIENT_SECRET = os.getenv('COGNITO_CLIENT_SECRET')
+    COGNITO_REGION = os.getenv('COGNITO_REGION')
+    DATABASE_URL = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}'
 
 
-create_database()  # Ensure DB exists before connecting
+class Database:
+    engine = sql.create_engine(f'{Config.DATABASE_URL}/{Config.DB_NAME}')
+    SessionLocal = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine,
+    )
+    Base = declarative_base()
 
-engine = sql.create_engine(f'{DATABASE_URL}/{DB_NAME}')
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+    @staticmethod
+    def create_database():
+        temp_engine = sql.create_engine(f'{Config.DATABASE_URL}/postgres')
+        with temp_engine.connect() as conn:
+            conn.execute(sql.text('COMMIT'))
+            result = conn.execute(
+                sql.text(
+                    "SELECT 1 FROM pg_database WHERE datname='{0}'".format(
+                        Config.DB_NAME
+                    )
+                )
+            )
+            if not result.fetchone():
+                conn.execute(sql.text(f'CREATE DATABASE {Config.DB_NAME}'))
+        temp_engine.dispose()
 
-# AWS Cognito settings
-COGNITO_USER_POOL_ID = os.getenv('COGNITO_USER_POOL_ID')
-COGNITO_CLIENT_ID = os.getenv('COGNITO_CLIENT_ID')
-COGNITO_REGION = os.getenv('COGNITO_REGION')
-cognito_client = boto3.client('cognito-idp', region_name=COGNITO_REGION)
 
-auth_scheme = HTTPBearer()
+Database.create_database()
+Database.Base.metadata.create_all(bind=Database.engine)
+
+
+class CognitoAuth:
+    auth_scheme = HTTPBearer()
+    cognito_client = boto3.client(
+        'cognito-idp',
+        region_name=Config.COGNITO_REGION,
+    )
+
+    @staticmethod
+    def compute_secret_hash(username: str) -> str:
+        message = (username + Config.COGNITO_CLIENT_ID).encode('utf-8')
+        secret = Config.COGNITO_CLIENT_SECRET.encode('utf-8')
+        dig = hmac.new(
+            key=secret,
+            msg=message,
+            digestmod=hashlib.sha256,
+        ).digest()
+        return base64.b64encode(dig).decode('utf-8')
+
+    @staticmethod
+    def verify_token(
+        credentials: HTTPAuthorizationCredentials = Security(auth_scheme),
+    ):
+        try:
+            token = credentials.credentials
+            decoded_token = jwt.decode(
+                token,
+                options={'verify_signature': False},
+            )
+            return decoded_token['cognito:username']
+        except Exception:
+            raise HTTPException(
+                status_code=401,
+                detail='Invalid or expired token',
+            )
+
+
+class BudgetEntry(Database.Base):
+    __tablename__ = 'budget_entries'
+    id = sql.Column(sql.Integer, primary_key=True, index=True)
+    date = sql.Column(sql.DateTime, default=datetime.now(timezone.utc))
+    shop = sql.Column(sql.String, index=True)
+    product = sql.Column(sql.String)
+    amount = sql.Column(sql.Float)
+    category = sql.Column(sql.String)
+    person = sql.Column(sql.String)
+    currency = sql.Column(sql.String)
 
 
 class BudgetEntrySchema(BaseModel):
@@ -62,64 +118,79 @@ class BudgetEntrySchema(BaseModel):
     currency: str
 
     class Config:
-        from_attributes = True  # Ensures compatibility with SQLAlchemy models
+        from_attributes = True
 
 
-# Define the Budget model
-class BudgetEntry(Base):
-    __tablename__ = 'budget_entries'
+class BudgetService:
 
-    id = sql.Column(sql.Integer, primary_key=True, index=True)
-    date = sql.Column(sql.DateTime, default=datetime.now(timezone.utc))
-    shop = sql.Column(sql.String, index=True)
-    product = sql.Column(sql.String)
-    amount = sql.Column(sql.Float)
-    category = sql.Column(sql.String)
-    person = sql.Column(sql.String)
-    currency = sql.Column(sql.String)
+    @staticmethod
+    def create_entry(db: Session, entry: BudgetEntrySchema) -> BudgetEntry:
+        db_entry = BudgetEntry(**entry.model_dump())
+        db.add(db_entry)
+        db.commit()
+        db.refresh(db_entry)
+        return db_entry
+
+    @staticmethod
+    def get_entries(db: Session) -> list[BudgetEntry]:
+        return db.query(BudgetEntry).all()
+
+    @staticmethod
+    def update_entry(
+        db: Session,
+        entry_id: int,
+        updated_entry: BudgetEntrySchema,
+    ) -> BudgetEntry:
+        entry = db.query(BudgetEntry).filter(
+            BudgetEntry.id == entry_id).first()
+        if not entry:
+            raise HTTPException(status_code=404, detail='Entry not found')
+        for key, value in updated_entry.model_dump().items():
+            setattr(entry, key, value)
+        db.commit()
+        db.refresh(entry)
+        return entry
+
+    @staticmethod
+    def delete_entry(db: Session, entry_id: int):
+        entry = db.query(BudgetEntry).filter(
+            BudgetEntry.id == entry_id).first()
+        if entry:
+            db.delete(entry)
+            db.commit()
+        return {'message': 'Entry deleted'}
 
 
-# Create tables
-Base.metadata.create_all(bind=engine)
-
-# FastAPI app
 app = FastAPI()
 
 
 def get_db():
-    db = SessionLocal()
+    db = Database.SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
 
-# Authentication Models
 class AuthRequest(BaseModel):
     username: str
     password: str
 
 
-def verify_token(
-    credentials: HTTPAuthorizationCredentials = Security(auth_scheme),
-):
-    try:
-        token = credentials.credentials
-        decoded_token = jwt.decode(token, options={'verify_signature': False})
-        return decoded_token['cognito:username']
-    except Exception as _:
-        raise HTTPException(status_code=401, detail='Invalid or expired token')
-
-
-# Authentication Endpoints
 @app.post('/auth/register')
 def register_user(auth_request: AuthRequest):
     try:
-        response = cognito_client.sign_up(
-            ClientId=COGNITO_CLIENT_ID,
+        _ = CognitoAuth.cognito_client.sign_up(
+            ClientId=Config.COGNITO_CLIENT_ID,
+            SecretHash=CognitoAuth.compute_secret_hash(auth_request.username),
             Username=auth_request.username,
             Password=auth_request.password,
-            UserAttributes=[{'Name': 'email', 'Value': auth_request.username}]
+            UserAttributes=[
+                {
+                    'Name': 'email',
+                    'Value': auth_request.username,
+                }
+            ]
         )
         return {'message': 'User registered, confirm the email in AWS Cognito'}
     except Exception as e:
@@ -129,78 +200,50 @@ def register_user(auth_request: AuthRequest):
 @app.post('/auth/login')
 def login_user(auth_request: AuthRequest):
     try:
-        response = cognito_client.initiate_auth(
-            ClientId=COGNITO_CLIENT_ID,
+        response = CognitoAuth.cognito_client.initiate_auth(
+            ClientId=Config.COGNITO_CLIENT_ID,
             AuthFlow='USER_PASSWORD_AUTH',
-            AuthParameters={'USERNAME': auth_request.username,
-                            'PASSWORD': auth_request.password}
+            AuthParameters={
+                'USERNAME': auth_request.username,
+                'PASSWORD': auth_request.password,
+            }
         )
         return {'access_token': response['AuthenticationResult']['IdToken']}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get('/auth/verify')
-def verify_user(token: str):
-    try:
-        decoded_token = jwt.decode(token, options={'verify_signature': False})
-        return {'username': decoded_token['cognito:username']}
-    except Exception as _:
-        raise HTTPException(status_code=400, detail='Invalid token')
-
-
-# Protected Budget Endpoints
-@app.post('/entries/')
-def create_entry(
-    entry: BudgetEntrySchema,  # Accept Pydantic model for validation
-    db: Session = Depends(get_db),
-    username: str = Depends(verify_token),
-):
-    db_entry = BudgetEntry(**entry.dict())  # Convert to SQLAlchemy model
-    db.add(db_entry)
-    db.commit()
-    db.refresh(db_entry)
-    return db_entry  # SQLAlchemy model auto-converts to Pydantic
-
-
 @app.get(path='/entries/', response_model=list[BudgetEntrySchema])
 def read_entries(
     db: Session = Depends(get_db),
-    username: str = Depends(verify_token),
+    username: str = Depends(CognitoAuth.verify_token),
 ):
-    entries = db.query(BudgetEntry).all()
-    return entries  # Automatically converted to Pydantic model
+    return BudgetService.get_entries(db)
 
 
-@app.put('/entries/{entry_id}', response_model=BudgetEntrySchema)
+@app.post(path='/entries/')
+def create_entry(
+    entry: BudgetEntrySchema,
+    db: Session = Depends(get_db),
+    username: str = Depends(CognitoAuth.verify_token),
+):
+    return BudgetService.create_entry(db, entry)
+
+
+@app.put(path='/entries/{entry_id}', response_model=BudgetEntrySchema)
 def update_entry(
     entry_id: int,
-    updated_entry: BudgetEntrySchema,  # Accept Pydantic model
+    updated_entry: BudgetEntrySchema,
     db: Session = Depends(get_db),
-    username: str = Depends(verify_token),
+    username: str = Depends(CognitoAuth.verify_token),
 ):
-    entry = db.query(BudgetEntry).filter(BudgetEntry.id == entry_id).first()
-    if not entry:
-        raise HTTPException(status_code=404, detail="Entry not found")
-
-    update_data = updated_entry.model_dump()  # Use `model_dump()` instead of `.dict()`
-
-    for key, value in update_data.items():
-        setattr(entry, key, value)
-
-    db.commit()
-    db.refresh(entry)
-    return entry  # SQLAlchemy model will be converted to Pydantic automatically
+    return BudgetService.update_entry(db, entry_id, updated_entry)
 
 
-@app.delete('/entries/{entry_id}')
+@app.delete(path='/entries/{entry_id}')
 def delete_entry(
     entry_id: int,
     db: Session = Depends(get_db),
-    username: str = Depends(verify_token),
+    username: str = Depends(CognitoAuth.verify_token),
 ):
-    entry = db.query(BudgetEntry).filter(BudgetEntry.id == entry_id).first()
-    if entry:
-        db.delete(entry)
-        db.commit()
-    return {'message': 'Entry deleted'}
+    return BudgetService.delete_entry(db, entry_id)
