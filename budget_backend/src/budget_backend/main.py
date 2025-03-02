@@ -1,15 +1,17 @@
-from datetime import datetime, timezone
-import os
 import base64
-import boto3
-import jwt
 import hashlib
 import hmac
+import logging
+import os
+from datetime import datetime, timezone
+
+import boto3
+import jwt
+import sqlalchemy as sql
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
-import sqlalchemy as sql
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -17,11 +19,11 @@ load_dotenv()
 
 
 class Config:
-    DB_USER = os.getenv('DB_USER', 'user')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', 'password')
-    DB_HOST = os.getenv('DB_HOST', 'rds-instance.amazonaws.com')
-    DB_PORT = os.getenv('DB_PORT', '5432')
-    DB_NAME = os.getenv('DB_NAME', 'budget_db')
+    DB_USER = os.getenv('DB_USER')
+    DB_PASSWORD = os.getenv('DB_PASSWORD')
+    DB_HOST = os.getenv('DB_HOST')
+    DB_PORT = os.getenv('DB_PORT')
+    DB_NAME = os.getenv('DB_NAME')
     COGNITO_USER_POOL_ID = os.getenv('COGNITO_USER_POOL_ID')
     COGNITO_CLIENT_ID = os.getenv('COGNITO_CLIENT_ID')
     COGNITO_CLIENT_SECRET = os.getenv('COGNITO_CLIENT_SECRET')
@@ -132,8 +134,12 @@ class BudgetService:
         return db_entry
 
     @staticmethod
-    def get_entries(db: Session) -> list[BudgetEntry]:
-        return db.query(BudgetEntry).all()
+    def get_entries(
+        db: Session,
+        skip: int = 0,
+        limit: int = 10,
+    ) -> list[BudgetEntry]:
+        return db.query(BudgetEntry).offset(skip).limit(limit).all()
 
     @staticmethod
     def update_entry(
@@ -179,8 +185,9 @@ class AuthRequest(BaseModel):
 
 @app.post('/auth/register')
 def register_user(auth_request: AuthRequest):
+    logging.info(f"Received register request for {auth_request.username}")
     try:
-        _ = CognitoAuth.cognito_client.sign_up(
+        response = CognitoAuth.cognito_client.sign_up(
             ClientId=Config.COGNITO_CLIENT_ID,
             SecretHash=CognitoAuth.compute_secret_hash(auth_request.username),
             Username=auth_request.username,
@@ -192,13 +199,16 @@ def register_user(auth_request: AuthRequest):
                 }
             ]
         )
+        logging.info(f'Cognito response: {response}')
         return {'message': 'User registered, confirm the email in AWS Cognito'}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as exc:
+        logging.error(f'Registration failed: {exc}')
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.post('/auth/login')
 def login_user(auth_request: AuthRequest):
+    logging.info(f"Received login request for {auth_request.username}")
     try:
         response = CognitoAuth.cognito_client.initiate_auth(
             ClientId=Config.COGNITO_CLIENT_ID,
@@ -206,11 +216,16 @@ def login_user(auth_request: AuthRequest):
             AuthParameters={
                 'USERNAME': auth_request.username,
                 'PASSWORD': auth_request.password,
+                'SECRET_HASH': CognitoAuth.compute_secret_hash(
+                    auth_request.username,
+                ),
             }
         )
+        logging.info(f'Cognito response: {response}')
         return {'access_token': response['AuthenticationResult']['IdToken']}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as exc:
+        logging.error(f'Registration failed: {exc}')
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.get(path='/entries/', response_model=list[BudgetEntrySchema])
