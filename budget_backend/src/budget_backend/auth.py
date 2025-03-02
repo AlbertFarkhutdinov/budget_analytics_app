@@ -9,13 +9,6 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-)
-logger = logging.getLogger(__name__)
-
-
 class AuthSettings(BaseSettings):
     COGNITO_USER_POOL_ID: str = ''
     COGNITO_CLIENT_ID: str = ''
@@ -28,27 +21,107 @@ class AuthSettings(BaseSettings):
     )
 
 
-settings = AuthSettings()
-    
+class CognitoClient:
 
-app = FastAPI()
-cognito_client = boto3.client(
-    'cognito-idp',
-    region_name=settings.COGNITO_REGION,
-)
+    def __init__(self, settings: AuthSettings):
+        self.settings = settings
+        self.client = boto3.client(
+            'cognito-idp',
+            region_name=self.settings.COGNITO_REGION,
+        )
 
+    def compute_secret_hash(self, username: str) -> str:
+        if not self.settings.COGNITO_CLIENT_SECRET:
+            raise ValueError('COGNITO_CLIENT_SECRET is missing.')
+        message = username + str(self.settings.COGNITO_CLIENT_ID)
+        dig = hmac.new(
+            key=self.settings.COGNITO_CLIENT_SECRET.encode('utf-8'),
+            msg=message.encode('utf-8'),
+            digestmod=hashlib.sha256,
+        ).digest()
+        return base64.b64encode(dig).decode('utf-8')
 
-def compute_secret_hash(username: str) -> str:
-    if not settings.COGNITO_CLIENT_SECRET:
-        raise ValueError('COGNITO_CLIENT_SECRET is missing.')
-    message = (username + str(settings.COGNITO_CLIENT_ID)).encode('utf-8')
-    secret = settings.COGNITO_CLIENT_SECRET.encode('utf-8')
-    dig = hmac.new(
-        key=secret,
-        msg=message,
-        digestmod=hashlib.sha256,
-    ).digest()
-    return base64.b64encode(dig).decode('utf-8')
+    def register_user(self, username: str, password: str):
+        try:
+            response = self.client.sign_up(
+                ClientId=self.settings.COGNITO_CLIENT_ID,
+                SecretHash=self.compute_secret_hash(username),
+                Username=username,
+                Password=password,
+                UserAttributes=[
+                    {
+                        'Name': 'email',
+                        'Value': username,
+                    },
+                ]
+            )
+            return {'message': 'User registered, confirm the email.'}
+        except self.client.exceptions.UsernameExistsException:
+            raise HTTPException(
+                status_code=400,
+                detail='User already exists',
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=500,
+                detail=str(exc),
+            )
+
+    def confirm_user(self, username: str, confirmation_code: str):
+        try:
+            response = self.client.confirm_sign_up(
+                ClientId=self.settings.COGNITO_CLIENT_ID,
+                Username=username,
+                ConfirmationCode=confirmation_code,
+            )
+            return {'message': 'User confirmed'}
+        except self.client.exceptions.CodeMismatchException:
+            raise HTTPException(
+                status_code=400,
+                detail='Invalid confirmation code',
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=500,
+                detail=str(exc),
+            )
+
+    def login_user(self, username: str, password: str):
+        try:
+            response = self.client.initiate_auth(
+                ClientId=self.settings.COGNITO_CLIENT_ID,
+                AuthFlow='USER_PASSWORD_AUTH',
+                AuthParameters={
+                    'USERNAME': username,
+                    'PASSWORD': password,
+                    'SECRET_HASH': self.compute_secret_hash(username),
+                }
+            )
+            token = response['AuthenticationResult']['AccessToken']
+            return {
+                'access_token': token,
+            }
+        except self.client.exceptions.UserNotFoundException:
+            raise HTTPException(
+                status_code=400,
+                detail='User not found',
+            )
+        except self.client.exceptions.NotAuthorizedException:
+            raise HTTPException(
+                status_code=401,
+                detail='Incorrect username or password',
+            )
+        except self.client.exceptions.UserNotConfirmedException:
+            raise HTTPException(
+                status_code=403,
+                detail='User is not confirmed.',
+            )
+        except Exception as exc:
+            logger.error(f'Login failed: {exc}')
+            raise HTTPException(
+                status_code=500,
+                detail=str(exc),
+            )
 
 
 class User(BaseModel):
@@ -56,96 +129,30 @@ class User(BaseModel):
     password: str
 
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+)
+logger = logging.getLogger(__name__)
+
+settings = AuthSettings()
+cognito_client = CognitoClient(settings)
+app = FastAPI()
+
+
 @app.post('/auth/register')
 def register(user: User):
     logger.info(f'Received register request for {user.username}')
-    try:
-        response = cognito_client.sign_up(
-            ClientId=settings.COGNITO_CLIENT_ID,
-            SecretHash=compute_secret_hash(user.username),
-            Username=user.username,
-            Password=user.password,
-            UserAttributes=[
-                {
-                    'Name': 'email',
-                    'Value': user.username,
-                },
-            ]
-        )
-        logger.info(f'Cognito `sign_up` response: {response}')
-        return {'message': 'User registered, confirm the email.'}
-    except cognito_client.exceptions.UsernameExistsException:
-        raise HTTPException(
-            status_code=400,
-            detail='User already exists',
-        )
-    except Exception as exc:
-        logger.error(f'Registration failed: {exc}')
-        raise HTTPException(
-            status_code=500,
-            detail=str(exc),
-        )
+    return cognito_client.register_user(user.username, user.password)
 
 
 @app.post('/auth/confirm')
 def confirm(user: User, confirmation_code: str):
     logger.info(f'Received confirm request for {user.username}')
-    try:
-        response = cognito_client.confirm_sign_up(
-            ClientId=settings.COGNITO_CLIENT_ID,
-            Username=user.username,
-            ConfirmationCode=confirmation_code,
-        )
-        logger.info(f'Cognito `confirm_sign_up` response: {response}')
-        return {'message': 'User confirmed'}
-    except cognito_client.exceptions.CodeMismatchException:
-        raise HTTPException(
-            status_code=400,
-            detail='Invalid confirmation code',
-        )
-    except Exception as exc:
-        logger.error(f'Confirmation failed: {exc}')
-        raise HTTPException(
-            status_code=500,
-            detail=str(exc),
-        )
+    return cognito_client.confirm_user(user.username, confirmation_code)
 
 
 @app.post('/auth/login')
 def login(user: User):
     logger.info(f'Received login request for {user.username}')
-    try:
-        response = cognito_client.initiate_auth(
-            ClientId=settings.COGNITO_CLIENT_ID,
-            AuthFlow='USER_PASSWORD_AUTH',
-            AuthParameters={
-                'USERNAME': user.username,
-                'PASSWORD': user.password,
-                'SECRET_HASH': compute_secret_hash(user.username),
-            }
-        )
-        logger.info(f'Cognito `initiate_auth` response: {response}')
-        return {
-            'access_token': response['AuthenticationResult']['AccessToken'],
-        }
-    except cognito_client.exceptions.UserNotFoundException:
-        raise HTTPException(
-            status_code=400,
-            detail='User not found',
-        )
-    except cognito_client.exceptions.NotAuthorizedException:
-        raise HTTPException(
-            status_code=401,
-            detail='Incorrect username or password',
-        )
-    except cognito_client.exceptions.UserNotConfirmedException:
-        raise HTTPException(
-            status_code=403,
-            detail='User is not confirmed.',
-        )
-    except Exception as exc:
-        logger.error(f'Login failed: {exc}')
-        raise HTTPException(
-            status_code=500,
-            detail=str(exc),
-        )
+    return cognito_client.login_user(user.username, user.password)
