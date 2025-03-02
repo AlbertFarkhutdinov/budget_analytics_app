@@ -75,12 +75,15 @@ def register(user: User):
         logger.info(f'Cognito `sign_up` response: {response}')
         return {'message': 'User registered, confirm the email.'}
     except cognito_client.exceptions.UsernameExistsException:
-        raise HTTPException(status_code=400, detail='User already exists')
+        raise HTTPException(
+            status_code=400,
+            detail='User already exists',
+        )
     except Exception as exc:
         logger.error(f'Registration failed: {exc}')
         raise HTTPException(
             status_code=500,
-            detail={'error': str(exc)},
+            detail=str(exc),
         )
 
 
@@ -104,7 +107,7 @@ def confirm(user: User, confirmation_code: str):
         logger.error(f'Confirmation failed: {exc}')
         raise HTTPException(
             status_code=500,
-            detail={'error': str(exc)},
+            detail=str(exc),
         )
 
 
@@ -128,16 +131,21 @@ def login(user: User):
     except cognito_client.exceptions.UserNotFoundException:
         raise HTTPException(
             status_code=400,
-            detail={'error': 'User not found'},
+            detail='User not found',
         )
     except cognito_client.exceptions.NotAuthorizedException:
         raise HTTPException(
             status_code=401,
-            detail={'error': 'Incorrect username or password'},
+            detail='Incorrect username or password',
+        )
+    except cognito_client.exceptions.UserNotConfirmedException:
+        raise HTTPException(
+            status_code=403,
+            detail='User is not confirmed.',
         )
     except Exception as exc:
         logger.error(f'Login failed: {exc}')
         raise HTTPException(
             status_code=500,
-            detail={'error': str(exc)},
+            detail=str(exc),
         )
