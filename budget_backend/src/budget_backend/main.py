@@ -1,21 +1,25 @@
-import base64
-import hashlib
-import hmac
 import logging
 import os
 from datetime import datetime, timezone
+from typing import Optional
 
-import boto3
-import jwt
 import sqlalchemy as sql
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Security
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.engine import URL
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 
 load_dotenv()
+
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+)
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -24,15 +28,29 @@ class Config:
     DB_HOST = os.getenv('DB_HOST')
     DB_PORT = os.getenv('DB_PORT')
     DB_NAME = os.getenv('DB_NAME')
-    COGNITO_USER_POOL_ID = os.getenv('COGNITO_USER_POOL_ID')
-    COGNITO_CLIENT_ID = os.getenv('COGNITO_CLIENT_ID')
-    COGNITO_CLIENT_SECRET = os.getenv('COGNITO_CLIENT_SECRET')
-    COGNITO_REGION = os.getenv('COGNITO_REGION')
-    DATABASE_URL = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}'
+
+
+DATABASE_URL = URL.create(
+    drivername='postgresql',
+    username=Config.DB_USER,
+    password=Config.DB_PASSWORD,
+    host=Config.DB_HOST,
+    port=Config.DB_PORT,
+    database=Config.DB_NAME
+)
 
 
 class Database:
-    engine = sql.create_engine(f'{Config.DATABASE_URL}/{Config.DB_NAME}')
+    engine = sql.create_engine(
+        URL.create(
+            drivername='postgresql',
+            username=Config.DB_USER,
+            password=Config.DB_PASSWORD,
+            host=Config.DB_HOST,
+            port=Config.DB_PORT,
+            database=Config.DB_NAME
+        )
+    )
     SessionLocal = sessionmaker(
         autocommit=False,
         autoflush=False,
@@ -42,7 +60,16 @@ class Database:
 
     @staticmethod
     def create_database():
-        temp_engine = sql.create_engine(f'{Config.DATABASE_URL}/postgres')
+        temp_engine = sql.create_engine(
+            URL.create(
+                drivername='postgresql',
+                username=Config.DB_USER,
+                password=Config.DB_PASSWORD,
+                host=Config.DB_HOST,
+                port=Config.DB_PORT,
+                database='postgres',
+            )
+        )
         with temp_engine.connect() as conn:
             conn.execute(sql.text('COMMIT'))
             result = conn.execute(
@@ -61,42 +88,6 @@ Database.create_database()
 Database.Base.metadata.create_all(bind=Database.engine)
 
 
-class CognitoAuth:
-    auth_scheme = HTTPBearer()
-    cognito_client = boto3.client(
-        'cognito-idp',
-        region_name=Config.COGNITO_REGION,
-    )
-
-    @staticmethod
-    def compute_secret_hash(username: str) -> str:
-        message = (username + Config.COGNITO_CLIENT_ID).encode('utf-8')
-        secret = Config.COGNITO_CLIENT_SECRET.encode('utf-8')
-        dig = hmac.new(
-            key=secret,
-            msg=message,
-            digestmod=hashlib.sha256,
-        ).digest()
-        return base64.b64encode(dig).decode('utf-8')
-
-    @staticmethod
-    def verify_token(
-        credentials: HTTPAuthorizationCredentials = Security(auth_scheme),
-    ):
-        try:
-            token = credentials.credentials
-            decoded_token = jwt.decode(
-                token,
-                options={'verify_signature': False},
-            )
-            return decoded_token['cognito:username']
-        except Exception:
-            raise HTTPException(
-                status_code=401,
-                detail='Invalid or expired token',
-            )
-
-
 class BudgetEntry(Database.Base):
     __tablename__ = 'budget_entries'
     id = sql.Column(sql.Integer, primary_key=True, index=True)
@@ -110,7 +101,7 @@ class BudgetEntry(Database.Base):
 
 
 class BudgetEntrySchema(BaseModel):
-    id: int
+    id: Optional[int] = None
     date: datetime
     shop: str
     product: str
@@ -178,60 +169,9 @@ def get_db():
         db.close()
 
 
-class AuthRequest(BaseModel):
-    username: str
-    password: str
-
-
-@app.post('/auth/register')
-def register_user(auth_request: AuthRequest):
-    logging.info(f"Received register request for {auth_request.username}")
-    try:
-        response = CognitoAuth.cognito_client.sign_up(
-            ClientId=Config.COGNITO_CLIENT_ID,
-            SecretHash=CognitoAuth.compute_secret_hash(auth_request.username),
-            Username=auth_request.username,
-            Password=auth_request.password,
-            UserAttributes=[
-                {
-                    'Name': 'email',
-                    'Value': auth_request.username,
-                }
-            ]
-        )
-        logging.info(f'Cognito response: {response}')
-        return {'message': 'User registered, confirm the email in AWS Cognito'}
-    except Exception as exc:
-        logging.error(f'Registration failed: {exc}')
-        raise HTTPException(status_code=400, detail=str(exc))
-
-
-@app.post('/auth/login')
-def login_user(auth_request: AuthRequest):
-    logging.info(f"Received login request for {auth_request.username}")
-    try:
-        response = CognitoAuth.cognito_client.initiate_auth(
-            ClientId=Config.COGNITO_CLIENT_ID,
-            AuthFlow='USER_PASSWORD_AUTH',
-            AuthParameters={
-                'USERNAME': auth_request.username,
-                'PASSWORD': auth_request.password,
-                'SECRET_HASH': CognitoAuth.compute_secret_hash(
-                    auth_request.username,
-                ),
-            }
-        )
-        logging.info(f'Cognito response: {response}')
-        return {'access_token': response['AuthenticationResult']['IdToken']}
-    except Exception as exc:
-        logging.error(f'Registration failed: {exc}')
-        raise HTTPException(status_code=400, detail=str(exc))
-
-
 @app.get(path='/entries/', response_model=list[BudgetEntrySchema])
 def read_entries(
     db: Session = Depends(get_db),
-    username: str = Depends(CognitoAuth.verify_token),
 ):
     return BudgetService.get_entries(db)
 
@@ -240,7 +180,6 @@ def read_entries(
 def create_entry(
     entry: BudgetEntrySchema,
     db: Session = Depends(get_db),
-    username: str = Depends(CognitoAuth.verify_token),
 ):
     return BudgetService.create_entry(db, entry)
 
@@ -250,7 +189,6 @@ def update_entry(
     entry_id: int,
     updated_entry: BudgetEntrySchema,
     db: Session = Depends(get_db),
-    username: str = Depends(CognitoAuth.verify_token),
 ):
     return BudgetService.update_entry(db, entry_id, updated_entry)
 
@@ -259,6 +197,5 @@ def update_entry(
 def delete_entry(
     entry_id: int,
     db: Session = Depends(get_db),
-    username: str = Depends(CognitoAuth.verify_token),
 ):
     return BudgetService.delete_entry(db, entry_id)

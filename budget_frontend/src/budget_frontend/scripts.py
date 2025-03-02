@@ -6,6 +6,7 @@ def main():
     sys.argv = [
         "streamlit",
         "run",
+        # "src/budget_frontend/auth.py",
         "src/budget_frontend/main.py",
         "--server.port",
         "8501",
