@@ -91,14 +91,15 @@ class APIClient:
 class AuthApp:
     """Handles UI and authentication logic."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         st.title('Authentication')
         st.header('Login')
         self.username = st.text_input('Username')
         self.password = st.text_input('Password', type='password')
         self.action = st.radio("Choose an action", ('Login', 'Register'))
+        self.token = ''
 
-    def register(self):
+    def register(self) -> None:
         if st.button('Create Account'):
             if not self.username or not self.password:
                 st.error('Username and password cannot be empty.')
@@ -130,19 +131,19 @@ class AuthApp:
                 return
             st.success('User confirmed. You can now log in.')
 
-    def login(self):
+    def login(self) -> None:
         login_clicked = st.button('Login')
+
         if login_clicked:
             if not self.username or not self.password:
                 st.error('Username and password cannot be empty.')
-                return
             response = APIClient.login_user(self.username, self.password)
             if 'detail' in response:
                 st.error(response['detail'])
-                return
             st.success('Logged in successfully!')
+            self.token = response['access_token']
 
-    def run(self):
+    def run(self) -> None:
         if self.action == 'Register':
             self.register()
         elif self.action == 'Login':

@@ -24,7 +24,7 @@ pytest-cov = "~6.0"
 wemake-python-styleguide = "~1.0"
 
 [tool.poetry.scripts]
-start-frontend = "budget_frontend.scripts:main"
+start-frontend = "budget_frontend.main:start_frontend"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

@@ -32,7 +32,7 @@ pytest-cov = "~6.0"
 wemake-python-styleguide = "~1.0"
 
 [tool.poetry.scripts]
-start-backend = "budget_backend.scripts:start_backend"
+start-backend = "budget_backend.main:start_backend"
 
 [build-system]
 requires = ["poetry-core"]

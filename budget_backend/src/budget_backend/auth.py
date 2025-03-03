@@ -5,7 +5,7 @@ import logging
 
 import boto3
 from custom_logging import config_logging
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -138,22 +138,22 @@ class User(BaseModel):
 config_logging()
 settings = AuthSettings()
 cognito_client = CognitoClient(settings)
-app = FastAPI()
+auth_router = APIRouter()
 
 
-@app.post('/auth/register')
+@auth_router.post('/register')
 def register(user: User):
     logging.info(f'Received register request for {user.username}')
     return cognito_client.register_user(user.username, user.password)
 
 
-@app.post('/auth/confirm')
+@auth_router.post('/confirm')
 def confirm(user: User):
     logging.info(f'Received confirm request for {user.username}')
     return cognito_client.confirm_user(user.username, user.confirmation_code)
 
 
-@app.post('/auth/login')
+@auth_router.post('/login')
 def login(user: User):
     logging.info(f'Received login request for {user.username}')
     return cognito_client.login_user(user.username, user.password)
