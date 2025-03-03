@@ -4,7 +4,7 @@ import requests
 import streamlit as st
 from custom_logging import config_logging
 
-from budget_frontend.auth import AuthApp
+from auth import AuthApp
 
 
 API_BASE_URL = 'http://127.0.0.1:8000'

@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 import uvicorn
-from budget_backend.auth import auth_router
-from budget_backend.entries import entries_router
+
+from .auth import auth_router
+from .entries import entries_router
 
 app = FastAPI()
 app.include_router(auth_router, prefix="/auth")
