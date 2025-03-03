@@ -104,6 +104,20 @@ files = [
 ]
 
 [[package]]
+name = "custom-logging"
+version = "0.1.0"
+description = ""
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = []
+develop = true
+
+[package.source]
+type = "directory"
+url = "../custom_logging"
+
+[[package]]
 name = "exceptiongroup"
 version = "1.2.2"
 description = "Backport of PEP 654 (exception groups)"
@@ -757,4 +771,4 @@ standard = ["colorama (>=0.4) ; sys_platform == \"win32\"", "httptools (>=0.6.3)
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "675754c575e03127183a27d88f3ae7b0e6c343a41b7d3d27e31c24801c807e25"
+content-hash = "f1ef44e37e461d4f295ec92ba37a000fdbea53ebf8287b93c72131350919b40b"

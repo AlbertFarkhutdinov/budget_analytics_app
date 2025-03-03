@@ -2,6 +2,7 @@ import logging
 
 import requests
 import streamlit as st
+from custom_logging import config_logging
 
 
 class APIClient:
@@ -149,9 +150,5 @@ class AuthApp:
 
 
 if __name__ == '__main__':
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-    )
-    logger = logging.getLogger(__name__)
+    config_logging()
     AuthApp().run()

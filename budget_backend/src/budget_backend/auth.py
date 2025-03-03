@@ -4,6 +4,7 @@ import hmac
 import logging
 
 import boto3
+from custom_logging import config_logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -134,12 +135,7 @@ class User(BaseModel):
     confirmation_code: str = ''
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-)
-logger = logging.getLogger(__name__)
-
+config_logging()
 settings = AuthSettings()
 cognito_client = CognitoClient(settings)
 app = FastAPI()

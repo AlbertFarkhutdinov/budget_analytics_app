@@ -2,14 +2,7 @@ import logging
 
 import requests
 import streamlit as st
-
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-)
-logger = logging.getLogger(__name__)
+from custom_logging import config_logging
 
 
 API_BASE_URL = 'http://127.0.0.1:8000'
@@ -105,5 +98,6 @@ class BudgetAnalyticsApp:
 
 
 if __name__ == '__main__':
+    config_logging()
     app = BudgetAnalyticsApp()
     app.run()

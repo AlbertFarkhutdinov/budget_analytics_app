@@ -212,6 +212,20 @@ files = [
 ]
 
 [[package]]
+name = "custom-logging"
+version = "0.1.0"
+description = ""
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = []
+develop = true
+
+[package.source]
+type = "directory"
+url = "../custom_logging"
+
+[[package]]
 name = "gitdb"
 version = "4.0.12"
 description = "Git Object Database"
@@ -1213,4 +1227,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "04b7299c42820cdd5dccbec40bd48eb75abc1a51c5c38589ee8c0847ed15c4c8"
+content-hash = "fe0fd1098b8e581e4cae8795109dc18949f866b444b1f4c7aa5b1affa9e90557"

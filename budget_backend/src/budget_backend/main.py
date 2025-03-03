@@ -3,20 +3,13 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import sqlalchemy as sql
+from custom_logging import config_logging
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
-
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-)
-logger = logging.getLogger(__name__)
 
 
 class DBSettings(BaseSettings):
@@ -32,6 +25,7 @@ class DBSettings(BaseSettings):
     )
 
 
+config_logging()
 db_settings = DBSettings()
 
 
