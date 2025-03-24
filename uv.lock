@@ -139,7 +139,6 @@ dependencies = [
     { name = "pyjwt" },
     { name = "python-dotenv" },
     { name = "requests" },
-    { name = "ruff" },
     { name = "sqlalchemy" },
     { name = "streamlit" },
     { name = "uvicorn" },
@@ -151,6 +150,7 @@ dev = [
     { name = "flake8-awesome" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "ruff" },
     { name = "wemake-python-styleguide" },
 ]
 
@@ -164,7 +164,6 @@ requires-dist = [
     { name = "pyjwt", specifier = "<2.11" },
     { name = "python-dotenv", specifier = "<1.1" },
     { name = "requests", specifier = "<2.33" },
-    { name = "ruff", specifier = ">=0.11.2" },
     { name = "sqlalchemy", specifier = "<2.1" },
     { name = "streamlit", specifier = "<1.43" },
     { name = "uvicorn", specifier = "<0.35" },
@@ -176,6 +175,7 @@ dev = [
     { name = "flake8-awesome", specifier = "<1.4" },
     { name = "pytest", specifier = "<8.4" },
     { name = "pytest-cov", specifier = "<6.1" },
+    { name = "ruff", specifier = ">=0.11.2" },
     { name = "wemake-python-styleguide", specifier = "<1.0" },
 ]
 
