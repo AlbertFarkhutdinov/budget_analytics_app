@@ -188,7 +188,7 @@ def read_entries(
 def create_entry(
     entry: BudgetEntrySchema,
     db: Session = Depends(get_db),
-) -> BudgetEntry:
+) -> BudgetEntrySchema:
     return BudgetService.create_entry(db, entry)
 
 
