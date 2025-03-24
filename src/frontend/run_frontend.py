@@ -7,7 +7,7 @@ def start_frontend() -> None:
     sys.argv = [
         'streamlit',
         'run',
-        'src/frontend/entries.py',
+        'src/frontend/main.py',
         '--server.port',
         '8501',
     ]

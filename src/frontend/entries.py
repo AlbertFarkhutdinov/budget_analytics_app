@@ -11,7 +11,7 @@ API_BASE_URL = 'http://127.0.0.1:8000'
 TIMEOUT = 10
 
 
-class BudgetAnalyticsApp:
+class TransactionsPage:
 
     def __init__(self) -> None:
         self.token = st.session_state.get('token', '')
@@ -27,43 +27,46 @@ class BudgetAnalyticsApp:
 
     def add_budget_entry(self) -> None:
         """Handle adding a budget entry."""
-        st.header('Add Budget Entry')
-        date = st.date_input('Date')
-        shop = st.text_input('Shop')
-        product = st.text_input('Product')
-        amount = st.number_input('Amount', min_value=0)
-        category = st.text_input('Category')
-        person = st.text_input('Person')
-        currency = st.text_input('Currency', value='USD')
+        if st.button('Add Budget Entry'):
+            st.session_state.page = 'transactions_adding'
+            st.header('Add Budget Entry')
+            date = st.date_input('Date')
+            shop = st.text_input('Shop')
+            product = st.text_input('Product')
+            amount = st.number_input('Amount', min_value=0)
+            category = st.text_input('Category')
+            person = st.text_input('Person')
+            currency = st.text_input('Currency', value='USD')
 
-        if st.button('Submit Entry'):
-            entry = {
-                'date': date.strftime('%Y-%m-%d'),
-                'shop': shop,
-                'product': product,
-                'amount': amount,
-                'category': category,
-                'person': person,
-                'currency': currency,
-            }
-            response = self._make_request(
-                method='POST',
-                endpoint='/entries/',
-                json_data=entry,
-            )
-            if response:
-                st.success('Entry added successfully')
+            if st.button('Submit Entry'):
+                entry = {
+                    'date': date.strftime('%Y-%m-%d'),
+                    'shop': shop,
+                    'product': product,
+                    'amount': amount,
+                    'category': category,
+                    'person': person,
+                    'currency': currency,
+                }
+                response = self._make_request(
+                    method='POST',
+                    endpoint='/entries/',
+                    json_data=entry,
+                )
+                if response:
+                    st.success('Entry added successfully')
+                    st.session_state.page = 'transactions'
 
     def view_budget_entries(self) -> None:
         """Handle viewing budget entries."""
         st.header('Budget Entries')
-        if st.button('Load Entries'):
-            entries = self._make_request(
-                method='GET',
-                endpoint='/entries/',
-            )
-            if entries:
-                st.table(entries)
+        # if st.button('Load Entries'):
+        entries = self._make_request(
+            method='GET',
+            endpoint='/entries/',
+        )
+        if entries:
+            st.table(entries)
 
     def run(self) -> None:
         """Run the Streamlit app."""
@@ -74,8 +77,8 @@ class BudgetAnalyticsApp:
             st.session_state['token'] = self.token
         if self.token:
             st.title('Budget Analytics')
-            self.add_budget_entry()
             self.view_budget_entries()
+            self.add_budget_entry()
 
     def _make_request(
         self,
@@ -106,5 +109,5 @@ class BudgetAnalyticsApp:
 
 if __name__ == '__main__':
     config_logging()
-    app = BudgetAnalyticsApp()
+    app = TransactionsPage()
     app.run()

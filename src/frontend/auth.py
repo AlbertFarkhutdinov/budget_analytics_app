@@ -56,8 +56,12 @@ class AuthApp:
             detail = response.get('detail', '')
             if detail:
                 st.error(detail)
-            st.success('Logged in successfully!')
-            self.token = response['access_token']
+            self.token = response.get('access_token', '')
+            if self.token:
+                st.success('Logged in successfully!')
+                st.session_state['token'] = self.token
+                st.session_state.page = 'transactions'
+                st.rerun()
 
     def run(self) -> None:
         if self.action == 'Register':
