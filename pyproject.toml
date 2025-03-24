@@ -19,7 +19,7 @@ dependencies = [
     "requests<2.33",
     "SQLAlchemy<2.1",
     "streamlit<1.43",
-    "uvicorn<0.35"
+    "uvicorn<0.35",
 ]
 
 [dependency-groups]
@@ -28,6 +28,7 @@ dev = [
     "flake8-awesome<1.4",
     "pytest<8.4",
     "pytest-cov<6.1",
+    "ruff>=0.11.2",
     "wemake-python-styleguide<1.0",
 ]
 
