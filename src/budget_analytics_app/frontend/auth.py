@@ -6,31 +6,30 @@ import streamlit as st
 from budget_analytics_app.budget_logs import config_logging
 
 logger = logging.getLogger(__name__)
+API_BASE_URL = 'http://127.0.0.1:8000'
+TIMEOUT = 10
 
 
 class APIClient:
     """Handles API requests."""
-
-    API_BASE_URL = 'http://127.0.0.1:8000'
-    TIMEOUT = 10
 
     @classmethod
     def make_request(
         cls,
         endpoint: str,
         method: str = 'POST',
-        data: dict[str, str] | None = None,
+        json_data: dict[str, str] | None = None,
     ) -> dict[str, str]:
         """Unified method for handling API requests."""
-        url = f'{cls.API_BASE_URL}{endpoint}'
+        url = f'{API_BASE_URL}{endpoint}'
         response = None
         try:
             response = requests.request(
                 method=method,
-                json=data,
+                json=json_data,
                 url=url,
                 headers={'Content-Type': 'application/json'},
-                timeout=cls.TIMEOUT,
+                timeout=TIMEOUT,
             )
             response.raise_for_status()
             return response.json()
@@ -50,7 +49,7 @@ class APIClient:
         logger.info(f'Registering user: {username}')
         return cls.make_request(
             endpoint='/auth/register',
-            data={
+            json_data={
                 'username': username.strip(),
                 'password': password.strip(),
             },
@@ -66,7 +65,7 @@ class APIClient:
         logger.info(f'Confirming user: {username}, code: {confirmation_code}')
         return cls.make_request(
             endpoint='/auth/confirm',
-            data={
+            json_data={
                 'username': username.strip(),
                 'password': password.strip(),
                 'confirmation_code': confirmation_code.strip(),
@@ -82,7 +81,7 @@ class APIClient:
         logger.info(f'Logging user: {username}')
         return cls.make_request(
             endpoint='/auth/login',
-            data={
+            json_data={
                 'username': username.strip(),
                 'password': password.strip(),
             },
@@ -106,8 +105,9 @@ class AuthApp:
                 st.error('Username and password cannot be empty.')
                 return
             response = APIClient.register_user(self.username, self.password)
-            if 'detail' in response:
-                st.error(response['detail'])
+            detail = response.get('detail', '')
+            if detail:
+                st.error(detail)
                 return
             st.success('User registered, confirm the email')
 
@@ -127,8 +127,9 @@ class AuthApp:
                 password=self.password,
                 confirmation_code=confirmation_code,
             )
-            if 'detail' in confirm_response:
-                st.error(confirm_response['detail'])
+            detail = confirm_response.get('detail', '')
+            if detail:
+                st.error(detail)
                 return
             st.success('User confirmed. You can now log in.')
 
@@ -139,8 +140,9 @@ class AuthApp:
             if not self.username or not self.password:
                 st.error('Username and password cannot be empty.')
             response = APIClient.login_user(self.username, self.password)
-            if 'detail' in response:
-                st.error(response['detail'])
+            detail = response.get('detail', '')
+            if detail:
+                st.error(detail)
             st.success('Logged in successfully!')
             self.token = response['access_token']
 

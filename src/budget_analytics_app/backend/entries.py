@@ -13,11 +13,11 @@ from budget_analytics_app.budget_logs import config_logging
 
 
 class DBSettings(BaseSettings):
-    DB_USER: str = ''
-    DB_PASSWORD: str = ''
-    DB_HOST: str = ''
-    DB_PORT: int = 5432
-    DB_NAME: str = ''
+    db_user: str = ''
+    db_password: str = ''
+    db_host: str = ''
+    db_port: int = 5432
+    db_name: str = ''
 
     model_config = SettingsConfigDict(
         env_file='env/db',
@@ -31,11 +31,11 @@ db_settings = DBSettings()
 
 DATABASE_URL = URL.create(
     drivername='postgresql',
-    username=db_settings.DB_USER,
-    password=db_settings.DB_PASSWORD,
-    host=db_settings.DB_HOST,
-    port=db_settings.DB_PORT,
-    database=db_settings.DB_NAME,
+    username=db_settings.db_user,
+    password=db_settings.db_password,
+    host=db_settings.db_host,
+    port=db_settings.db_port,
+    database=db_settings.db_name,
 )
 
 
@@ -43,52 +43,52 @@ class Database:
     engine = sql.create_engine(
         URL.create(
             drivername='postgresql',
-            username=db_settings.DB_USER,
-            password=db_settings.DB_PASSWORD,
-            host=db_settings.DB_HOST,
-            port=db_settings.DB_PORT,
-            database=db_settings.DB_NAME,
+            username=db_settings.db_user,
+            password=db_settings.db_password,
+            host=db_settings.db_host,
+            port=db_settings.db_port,
+            database=db_settings.db_name,
         ),
     )
-    SessionLocal = sessionmaker(
+    session_local = sessionmaker(
         autocommit=False,
         autoflush=False,
         bind=engine,
     )
-    Base = declarative_base()
+    base = declarative_base()
 
-    @staticmethod
-    def create_database() -> None:
+    @classmethod
+    def create_database(cls) -> None:
         temp_engine = sql.create_engine(
             URL.create(
                 drivername='postgresql',
-                username=db_settings.DB_USER,
-                password=db_settings.DB_PASSWORD,
-                host=db_settings.DB_HOST,
-                port=db_settings.DB_PORT,
+                username=db_settings.db_user,
+                password=db_settings.db_password,
+                host=db_settings.db_host,
+                port=db_settings.db_port,
                 database='postgres',
             ),
         )
         with temp_engine.connect() as conn:
             conn.execute(sql.text('COMMIT'))
-            db_name = db_settings.DB_NAME
-            result = conn.execute(
+            db_name = db_settings.db_name
+            query_result = conn.execute(
                 sql.text(
                     f"SELECT 1 FROM pg_database WHERE datname='{db_name}'",
                 ),
             )
-            if not result.fetchone():
+            if not query_result.fetchone():
                 conn.execute(
-                    sql.text(f'CREATE DATABASE {db_settings.DB_NAME}'),
+                    sql.text(f'CREATE DATABASE {db_settings.db_name}'),
                 )
         temp_engine.dispose()
 
 
 Database.create_database()
-Database.Base.metadata.create_all(bind=Database.engine)
+Database.base.metadata.create_all(bind=Database.engine)
 
 
-class BudgetEntry(Database.Base):
+class BudgetEntry(Database.base):
     __tablename__ = 'budget_entries'
     id = sql.Column(sql.Integer, primary_key=True, index=True)
     date = sql.Column(sql.DateTime, default=datetime.now(timezone.utc))
@@ -116,50 +116,58 @@ class BudgetEntrySchema(BaseModel):
 
 class BudgetService:
 
-    @staticmethod
-    def create_entry(db: Session, entry: BudgetEntrySchema) -> BudgetEntry:
+    @classmethod
+    def create_entry(
+        cls,
+        db: Session,
+        entry: BudgetEntrySchema,
+    ) -> BudgetEntry:
         db_entry = BudgetEntry(**entry.model_dump())
         db.add(db_entry)
         db.commit()
         db.refresh(db_entry)
         return db_entry
 
-    @staticmethod
+    @classmethod
     def get_entries(
+        cls,
         db: Session,
         skip: int = 0,
         limit: int = 10,
     ) -> list[type[BudgetEntry]]:
         return db.query(BudgetEntry).offset(skip).limit(limit).all()
 
-    @staticmethod
+    @classmethod
     def update_entry(
+        cls,
         db: Session,
         entry_id: int,
         updated_entry: BudgetEntrySchema,
     ) -> type[BudgetEntry]:
         entry = db.query(BudgetEntry).filter(
-            BudgetEntry.id == entry_id).first()
+            BudgetEntry.id == entry_id,
+        ).first()
         if not entry:
             raise HTTPException(status_code=404, detail='Entry not found')
-        for key, value in updated_entry.model_dump().items():
-            setattr(entry, key, value)
+        for key, entry_value in updated_entry.model_dump().items():
+            setattr(entry, key, entry_value)
         db.commit()
         db.refresh(entry)
         return entry
 
-    @staticmethod
-    def delete_entry(db: Session, entry_id: int) -> dict[str, str]:
+    @classmethod
+    def delete_entry(cls, db: Session, entry_id: int) -> dict[str, str]:
         entry = db.query(BudgetEntry).filter(
-            BudgetEntry.id == entry_id).first()
+            BudgetEntry.id == entry_id,
+        ).first()
         if entry:
             db.delete(entry)
             db.commit()
         return {'message': 'Entry deleted'}
 
 
-def get_db() -> Database.SessionLocal:
-    db = Database.SessionLocal()
+def get_db() -> Database.session_local:
+    db = Database.session_local()
     try:
         yield db
     finally:
