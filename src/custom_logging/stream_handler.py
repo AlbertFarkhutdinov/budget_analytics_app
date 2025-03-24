@@ -2,7 +2,7 @@
 import logging
 import sys
 
-from budget_analytics_app.budget_logs.colored_formatter import ColoredFormatter
+from custom_logging.colored_formatter import ColoredFormatter
 
 
 def get_stream_handler(

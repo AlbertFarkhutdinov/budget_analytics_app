@@ -1,8 +1,8 @@
 """The module contains a configuration of logging."""
 import logging
 
-from budget_analytics_app.budget_logs.file_handler import get_file_handler
-from budget_analytics_app.budget_logs.stream_handler import get_stream_handler
+from custom_logging.file_handler import get_file_handler
+from custom_logging.stream_handler import get_stream_handler
 
 
 def config_logging(

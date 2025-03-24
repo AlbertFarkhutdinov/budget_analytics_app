@@ -3,7 +3,7 @@ import logging
 import requests
 import streamlit as st
 
-from budget_analytics_app.budget_logs import config_logging
+from custom_logging import config_logging
 
 logger = logging.getLogger(__name__)
 API_BASE_URL = 'http://127.0.0.1:8000'
@@ -113,10 +113,8 @@ class AuthApp:
             'Enter confirmation code',
             max_chars=6,
         )
-        logger.info(f'After text input {confirmation_code=})')
         confirm_clicked = st.button('Confirm')
         if confirm_clicked:
-            logger.info(f'After button {confirmation_code=})')
             if not confirmation_code:
                 st.error('Confirmation code cannot be empty.')
                 return

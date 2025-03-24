@@ -5,7 +5,7 @@ import os
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
-from budget_analytics_app.budget_logs import get_file_handler
+from custom_logging import get_file_handler
 
 log_filepath = Path('.').joinpath('test.log')
 

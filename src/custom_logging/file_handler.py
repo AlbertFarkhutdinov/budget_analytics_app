@@ -4,7 +4,7 @@ import logging
 import tracemalloc
 from logging.handlers import TimedRotatingFileHandler
 
-from budget_analytics_app.budget_logs.record_factory import record_factory
+from custom_logging.record_factory import record_factory
 
 
 def get_file_handler(

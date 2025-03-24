@@ -4,12 +4,9 @@ import hmac
 import logging
 
 import boto3
-from fastapi import APIRouter
-from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from budget_analytics_app.backend import exceptions
-from budget_analytics_app.budget_logs import config_logging
+from auth_app import exceptions
 
 logger = logging.getLogger(__name__)
 ENCODING = 'utf-8'
@@ -22,7 +19,7 @@ class AuthSettings(BaseSettings):
     cognito_client_secret: str = ''
 
     model_config = SettingsConfigDict(
-        env_file='env/cognito',
+        env_file='src/auth_app/.env',
         env_file_encoding=ENCODING,
     )
 
@@ -126,37 +123,3 @@ class CognitoClient:
         return {
             'access_token': token,
         }
-
-
-class UserLogin(BaseModel):
-    username: str
-    password: str
-
-
-class UserConfirm(BaseModel):
-    username: str
-    confirmation_code: str = ''
-
-
-config_logging()
-settings = AuthSettings()
-cognito_client = CognitoClient(settings)
-auth_router = APIRouter()
-
-
-@auth_router.post('/register')
-def register(user: UserLogin) -> dict[str, str]:
-    logger.info('Received register request.')
-    return cognito_client.register_user(user.username, user.password)
-
-
-@auth_router.post('/confirm')
-def confirm(user: UserConfirm) -> dict[str, str]:
-    logger.info('Received confirm request.')
-    return cognito_client.confirm_user(user.username, user.confirmation_code)
-
-
-@auth_router.post('/login')
-def login(user: UserLogin) -> dict[str, str]:
-    logger.info('Received login request.')
-    return cognito_client.login_user(user.username, user.password)

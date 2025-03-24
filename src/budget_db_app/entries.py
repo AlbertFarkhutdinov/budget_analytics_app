@@ -2,14 +2,14 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import sqlalchemy as sql
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import HTTPException
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 
-from budget_analytics_app.budget_logs import config_logging
+from custom_logging import config_logging
 
 
 class DBSettings(BaseSettings):
@@ -20,7 +20,7 @@ class DBSettings(BaseSettings):
     db_name: str = ''
 
     model_config = SettingsConfigDict(
-        env_file='env/db',
+        env_file='src/budget_db_app/.env',
         env_file_encoding='utf-8',
     )
 
@@ -164,46 +164,3 @@ class BudgetService:
             db.delete(entry)
             db.commit()
         return {'message': 'Entry deleted'}
-
-
-def get_db() -> Database.session_local:
-    db = Database.session_local()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-entries_router = APIRouter()
-
-
-@entries_router.get(path='/', response_model=list[BudgetEntrySchema])
-def read_entries(
-    db: Session = Depends(get_db),
-) -> list[type[BudgetEntry]]:
-    return BudgetService.get_entries(db)
-
-
-@entries_router.post(path='/')
-def create_entry(
-    entry: BudgetEntrySchema,
-    db: Session = Depends(get_db),
-) -> BudgetEntrySchema:
-    return BudgetService.create_entry(db, entry)
-
-
-@entries_router.put(path='/{entry_id}', response_model=BudgetEntrySchema)
-def update_entry(
-    entry_id: int,
-    updated_entry: BudgetEntrySchema,
-    db: Session = Depends(get_db),
-) -> type[BudgetEntry]:
-    return BudgetService.update_entry(db, entry_id, updated_entry)
-
-
-@entries_router.delete(path='/{entry_id}')
-def delete_entry(
-    entry_id: int,
-    db: Session = Depends(get_db),
-) -> dict[str, str]:
-    return BudgetService.delete_entry(db, entry_id)

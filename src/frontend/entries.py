@@ -3,8 +3,8 @@ import logging
 import requests
 import streamlit as st
 
-from budget_analytics_app.budget_logs import config_logging
-from budget_analytics_app.frontend.auth import AuthApp
+from custom_logging import config_logging
+from frontend.auth import AuthApp
 
 logger = logging.getLogger(__name__)
 API_BASE_URL = 'http://127.0.0.1:8000'

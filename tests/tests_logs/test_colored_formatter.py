@@ -3,7 +3,7 @@ import logging
 
 import pytest
 
-from budget_analytics_app.budget_logs import ColoredFormatter
+from custom_logging import ColoredFormatter
 
 
 class TestColoredFormatter:

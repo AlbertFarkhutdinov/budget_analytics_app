@@ -1,7 +1,7 @@
 """Tests for `auxiliary.stream_handler` objects."""
 import logging
 
-from budget_analytics_app import budget_logs as logs
+import custom_logging as logs
 
 
 class TestStreamHandler:

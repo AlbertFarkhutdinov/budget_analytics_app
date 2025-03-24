@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from budget_analytics_app.budget_logs.record_factory import record_factory
+from custom_logging.record_factory import record_factory
 
 BYTES_IN_MB = 1048576
 

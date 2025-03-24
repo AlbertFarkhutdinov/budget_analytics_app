@@ -1,8 +1,8 @@
 import uvicorn
 from fastapi import FastAPI
 
-from budget_analytics_app.backend.auth import auth_router
-from budget_analytics_app.backend.entries import entries_router
+from api.auth import auth_router
+from api.entries import entries_router
 
 app = FastAPI()
 app.include_router(auth_router, prefix='/auth')
@@ -12,7 +12,7 @@ app.include_router(entries_router, prefix='/entries')
 def start_backend() -> None:
     port = 8000
     uvicorn.run(
-        app='budget_analytics_app.backend.run_backend:app',
+        app='api.run_backend:app',
         host='0.0.0.0',
         port=port,
         reload=True,

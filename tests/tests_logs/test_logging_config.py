@@ -3,7 +3,7 @@ import logging
 import os
 from pathlib import Path
 
-from budget_analytics_app.budget_logs import ColoredFormatter, config_logging
+from custom_logging import ColoredFormatter, config_logging
 
 log_filepath = Path('.').joinpath('test.log')
 
