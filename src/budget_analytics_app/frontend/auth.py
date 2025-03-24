@@ -59,7 +59,6 @@ class APIClient:
     def confirm_user(
         cls,
         username: str,
-        password: str,
         confirmation_code: str,
     ) -> dict[str, str]:
         logger.info(f'Confirming user: {username}, code: {confirmation_code}')
@@ -67,7 +66,6 @@ class APIClient:
             endpoint='/auth/confirm',
             json_data={
                 'username': username.strip(),
-                'password': password.strip(),
                 'confirmation_code': confirmation_code.strip(),
             },
         )
@@ -124,7 +122,6 @@ class AuthApp:
                 return
             confirm_response = APIClient.confirm_user(
                 username=self.username,
-                password=self.password,
                 confirmation_code=confirmation_code,
             )
             detail = confirm_response.get('detail', '')
