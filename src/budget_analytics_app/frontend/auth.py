@@ -5,6 +5,8 @@ import streamlit as st
 
 from budget_analytics_app.budget_logs import config_logging
 
+logger = logging.getLogger(__name__)
+
 
 class APIClient:
     """Handles API requests."""
@@ -17,8 +19,8 @@ class APIClient:
         cls,
         endpoint: str,
         method: str = 'POST',
-        data=None,
-    ):
+        data: dict[str, str] | None = None,
+    ) -> dict[str, str]:
         """Unified method for handling API requests."""
         url = f'{cls.API_BASE_URL}{endpoint}'
         response = None
@@ -32,8 +34,8 @@ class APIClient:
             )
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.RequestException as exc:
-            logging.exception(f'API request failed: {exc}')
+        except requests.exceptions.RequestException:
+            logger.exception('API request failed.')
             try:
                 return response.json()
             except AttributeError:
@@ -44,16 +46,15 @@ class APIClient:
         cls,
         username: str,
         password: str,
-    ):
-        logging.info(f'Registering user: {username}')
-        response = cls.make_request(
+    ) -> dict[str, str]:
+        logger.info(f'Registering user: {username}')
+        return cls.make_request(
             endpoint='/auth/register',
             data={
                 'username': username.strip(),
                 'password': password.strip(),
             },
         )
-        return response
 
     @classmethod
     def confirm_user(
@@ -61,9 +62,9 @@ class APIClient:
         username: str,
         password: str,
         confirmation_code: str,
-    ):
-        logging.info(f'Confirming user: {username}, code: {confirmation_code}')
-        response = cls.make_request(
+    ) -> dict[str, str]:
+        logger.info(f'Confirming user: {username}, code: {confirmation_code}')
+        return cls.make_request(
             endpoint='/auth/confirm',
             data={
                 'username': username.strip(),
@@ -71,23 +72,21 @@ class APIClient:
                 'confirmation_code': confirmation_code.strip(),
             },
         )
-        return response
 
     @classmethod
     def login_user(
         cls,
         username: str,
         password: str,
-    ):
-        logging.info(f'Logging user: {username}')
-        response = cls.make_request(
+    ) -> dict[str, str]:
+        logger.info(f'Logging user: {username}')
+        return cls.make_request(
             endpoint='/auth/login',
             data={
                 'username': username.strip(),
                 'password': password.strip(),
             },
         )
-        return response
 
 
 class AuthApp:
@@ -116,10 +115,10 @@ class AuthApp:
             'Enter confirmation code',
             max_chars=6,
         )
-        logging.info(f'After text input {confirmation_code=})')
+        logger.info(f'After text input {confirmation_code=})')
         confirm_clicked = st.button('Confirm')
         if confirm_clicked:
-            logging.info(f'After button {confirmation_code=})')
+            logger.info(f'After button {confirmation_code=})')
             if not confirmation_code:
                 st.error('Confirmation code cannot be empty.')
                 return

@@ -10,6 +10,7 @@ from budget_analytics_app.budget_logs.record_factory import record_factory
 def get_file_handler(
     filename: str,
     logging_level: int = logging.INFO,
+    *,
     is_rewritable: bool = False,
 ) -> logging.Handler:
     """

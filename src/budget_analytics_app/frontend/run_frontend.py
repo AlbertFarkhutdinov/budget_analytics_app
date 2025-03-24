@@ -3,7 +3,7 @@ import sys
 from streamlit.web import cli as stcli
 
 
-def start_frontend():
+def start_frontend() -> None:
     sys.argv = [
         'streamlit',
         'run',

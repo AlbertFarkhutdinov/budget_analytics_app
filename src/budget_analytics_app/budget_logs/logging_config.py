@@ -8,8 +8,9 @@ from budget_analytics_app.budget_logs.stream_handler import get_stream_handler
 def config_logging(
     stream_logging_level: int = logging.INFO,
     file_logging_level: int = logging.INFO,
-    verbose: bool = False,
     filename: str = '',
+    *,
+    verbose: bool = False,
     is_rewritable: bool = False,
 ) -> None:
     """

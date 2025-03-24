@@ -6,23 +6,31 @@ import streamlit as st
 from budget_analytics_app.budget_logs import config_logging
 from budget_analytics_app.frontend.auth import AuthApp
 
+logger = logging.getLogger(__name__)
 API_BASE_URL = 'http://127.0.0.1:8000'
 
 
 class BudgetAnalyticsApp:
-    def __init__(self):
+    TIMEOUT = 10
+
+    def __init__(self) -> None:
         self.token = st.session_state.get('token', '')
         self.username = st.session_state.get('username', '')
         self.password = ''
         self.confirmation_code = ''
 
-    def get_headers(self):
+    def get_headers(self) -> dict[str, str]:
         """Return authorization headers if the user is logged in."""
         if self.token:
             return {'Authorization': f'Bearer {self.token}'}
         return {}
 
-    def _make_request(self, method, endpoint, data=None):
+    def _make_request(
+        self,
+        method: str,
+        endpoint: str,
+        data: dict[str, str | int | None] | None = None,
+    ) -> dict[str, str] | None:
         """Unified method for handling API requests."""
         url = f'{API_BASE_URL}{endpoint}'
         headers = {**self.get_headers(), 'Content-Type': 'application/json'}
@@ -33,17 +41,18 @@ class BudgetAnalyticsApp:
                 url=url,
                 json=data,
                 headers=headers,
+                timeout=self.TIMEOUT,
             )
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as exc:
             msg = f'Request failed: {exc}'
             st.error(msg)
-            logging.exception(msg)
+            logger.exception(msg)
             return None
 
-    def add_budget_entry(self):
-        """Handles adding a budget entry."""
+    def add_budget_entry(self) -> None:
+        """Handle adding a budget entry."""
         st.header('Add Budget Entry')
         date = st.date_input('Date')
         shop = st.text_input('Shop')
@@ -71,8 +80,8 @@ class BudgetAnalyticsApp:
             if response:
                 st.success('Entry added successfully')
 
-    def view_budget_entries(self):
-        """Handles viewing budget entries."""
+    def view_budget_entries(self) -> None:
+        """Handle viewing budget entries."""
         st.header('Budget Entries')
         if st.button('Load Entries'):
             entries = self._make_request(
@@ -82,8 +91,8 @@ class BudgetAnalyticsApp:
             if entries:
                 st.table(entries)
 
-    def run(self):
-        """Runs the Streamlit app."""
+    def run(self) -> None:
+        """Run the Streamlit app."""
         if not self.token:
             auth_app = AuthApp()
             auth_app.run()

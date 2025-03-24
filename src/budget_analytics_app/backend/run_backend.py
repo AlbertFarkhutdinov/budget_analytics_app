@@ -9,7 +9,7 @@ app.include_router(auth_router, prefix='/auth')
 app.include_router(entries_router, prefix='/entries')
 
 
-def start_backend():
+def start_backend() -> None:
     uvicorn.run(
         app='budget_analytics_app.backend.run_backend:app',
         host='0.0.0.0',

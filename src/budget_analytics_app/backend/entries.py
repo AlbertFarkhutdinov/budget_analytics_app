@@ -58,7 +58,7 @@ class Database:
     Base = declarative_base()
 
     @staticmethod
-    def create_database():
+    def create_database() -> None:
         temp_engine = sql.create_engine(
             URL.create(
                 drivername='postgresql',
@@ -129,7 +129,7 @@ class BudgetService:
         db: Session,
         skip: int = 0,
         limit: int = 10,
-    ) -> list[BudgetEntry]:
+    ) -> list[type[BudgetEntry]]:
         return db.query(BudgetEntry).offset(skip).limit(limit).all()
 
     @staticmethod
@@ -137,7 +137,7 @@ class BudgetService:
         db: Session,
         entry_id: int,
         updated_entry: BudgetEntrySchema,
-    ) -> BudgetEntry:
+    ) -> type[BudgetEntry]:
         entry = db.query(BudgetEntry).filter(
             BudgetEntry.id == entry_id).first()
         if not entry:
@@ -149,7 +149,7 @@ class BudgetService:
         return entry
 
     @staticmethod
-    def delete_entry(db: Session, entry_id: int):
+    def delete_entry(db: Session, entry_id: int) -> dict[str, str]:
         entry = db.query(BudgetEntry).filter(
             BudgetEntry.id == entry_id).first()
         if entry:
@@ -158,7 +158,7 @@ class BudgetService:
         return {'message': 'Entry deleted'}
 
 
-def get_db():
+def get_db() -> Database.SessionLocal:
     db = Database.SessionLocal()
     try:
         yield db
@@ -172,7 +172,7 @@ entries_router = APIRouter()
 @entries_router.get(path='/', response_model=list[BudgetEntrySchema])
 def read_entries(
     db: Session = Depends(get_db),
-):
+) -> list[type[BudgetEntry]]:
     return BudgetService.get_entries(db)
 
 
@@ -180,7 +180,7 @@ def read_entries(
 def create_entry(
     entry: BudgetEntrySchema,
     db: Session = Depends(get_db),
-):
+) -> BudgetEntry:
     return BudgetService.create_entry(db, entry)
 
 
@@ -189,7 +189,7 @@ def update_entry(
     entry_id: int,
     updated_entry: BudgetEntrySchema,
     db: Session = Depends(get_db),
-):
+) -> type[BudgetEntry]:
     return BudgetService.update_entry(db, entry_id, updated_entry)
 
 
@@ -197,5 +197,5 @@ def update_entry(
 def delete_entry(
     entry_id: int,
     db: Session = Depends(get_db),
-):
+) -> dict[str, str]:
     return BudgetService.delete_entry(db, entry_id)

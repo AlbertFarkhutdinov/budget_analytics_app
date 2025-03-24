@@ -7,6 +7,7 @@ from budget_analytics_app.budget_logs.colored_formatter import ColoredFormatter
 
 def get_stream_handler(
     logging_level: int = logging.DEBUG,
+    *,
     verbose: bool = False,
 ) -> logging.Handler:
     """
@@ -30,8 +31,7 @@ def get_stream_handler(
         '%(levelname)s',
     ]
     if verbose:
-        msg_items.append('%(funcName)s')
-        msg_items.append('%(module)s')
+        msg_items.extend(['%(funcName)s', '%(module)s'])
     msg_items.append('%(message)s')
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setLevel(logging_level)
