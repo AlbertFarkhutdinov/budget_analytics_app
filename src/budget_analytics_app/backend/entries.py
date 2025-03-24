@@ -35,7 +35,7 @@ DATABASE_URL = URL.create(
     password=db_settings.DB_PASSWORD,
     host=db_settings.DB_HOST,
     port=db_settings.DB_PORT,
-    database=db_settings.DB_NAME
+    database=db_settings.DB_NAME,
 )
 
 
@@ -47,8 +47,8 @@ class Database:
             password=db_settings.DB_PASSWORD,
             host=db_settings.DB_HOST,
             port=db_settings.DB_PORT,
-            database=db_settings.DB_NAME
-        )
+            database=db_settings.DB_NAME,
+        ),
     )
     SessionLocal = sessionmaker(
         autocommit=False,
@@ -67,20 +67,19 @@ class Database:
                 host=db_settings.DB_HOST,
                 port=db_settings.DB_PORT,
                 database='postgres',
-            )
+            ),
         )
         with temp_engine.connect() as conn:
             conn.execute(sql.text('COMMIT'))
+            db_name = db_settings.DB_NAME
             result = conn.execute(
                 sql.text(
-                    "SELECT 1 FROM pg_database WHERE datname='{0}'".format(
-                        db_settings.DB_NAME
-                    )
-                )
+                    f"SELECT 1 FROM pg_database WHERE datname='{db_name}'",
+                ),
             )
             if not result.fetchone():
                 conn.execute(
-                    sql.text(f'CREATE DATABASE {db_settings.DB_NAME}')
+                    sql.text(f'CREATE DATABASE {db_settings.DB_NAME}'),
                 )
         temp_engine.dispose()
 

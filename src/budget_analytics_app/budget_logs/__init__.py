@@ -7,8 +7,8 @@ from budget_analytics_app.budget_logs.stream_handler import get_stream_handler
 
 __all__ = [
     'ColoredFormatter',
-    'get_file_handler',
     'config_logging',
-    'record_factory',
+    'get_file_handler',
     'get_stream_handler',
+    'record_factory',
 ]

@@ -56,7 +56,7 @@ class CognitoClient:
                         'Name': 'email',
                         'Value': username,
                     },
-                ]
+                ],
             )
             return {'message': 'User registered, confirm the email.'}
         except self.client.exceptions.UsernameExistsException:
@@ -101,7 +101,7 @@ class CognitoClient:
                     'USERNAME': username,
                     'PASSWORD': password,
                     'SECRET_HASH': self.compute_secret_hash(username),
-                }
+                },
             )
             token = response['AuthenticationResult']['AccessToken']
             return {
@@ -123,7 +123,7 @@ class CognitoClient:
                 detail='User is not confirmed.',
             )
         except Exception as exc:
-            logging.error(f'Login failed: {exc}')
+            logging.exception(f'Login failed: {exc}')
             raise HTTPException(
                 status_code=500,
                 detail=str(exc),

@@ -8,6 +8,7 @@ from budget_analytics_app.budget_logs import config_logging
 
 class APIClient:
     """Handles API requests."""
+
     API_BASE_URL = 'http://127.0.0.1:8000'
     TIMEOUT = 10
 
@@ -32,7 +33,7 @@ class APIClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as exc:
-            logging.error(f'API request failed: {exc}')
+            logging.exception(f'API request failed: {exc}')
             try:
                 return response.json()
             except AttributeError:
@@ -97,7 +98,7 @@ class AuthApp:
         st.header('Login')
         self.username = st.text_input('Username')
         self.password = st.text_input('Password', type='password')
-        self.action = st.radio("Choose an action", ('Login', 'Register'))
+        self.action = st.radio('Choose an action', ('Login', 'Register'))
         self.token = ''
 
     def register(self) -> None:

@@ -63,8 +63,8 @@ class TestRecordFactory:
             args=(),
             exc_info=None,
         )
-        assert getattr(record, 'current_memory', None) == 1  # noqa: B009
-        assert getattr(record, 'peak_memory', None) == 10  # noqa: B009
+        assert getattr(record, 'current_memory', None) == 1
+        assert getattr(record, 'peak_memory', None) == 10
 
     def test_record_factory_with_default_log_record(
         self,
@@ -93,5 +93,5 @@ class TestRecordFactory:
             args=(),
             exc_info=None,
         )
-        assert getattr(record, 'current_memory', None) == 1  # noqa: B009
-        assert getattr(record, 'peak_memory', None) == 10  # noqa: B009
+        assert getattr(record, 'current_memory', None) == 1
+        assert getattr(record, 'peak_memory', None) == 10

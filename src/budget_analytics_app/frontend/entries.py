@@ -39,7 +39,7 @@ class BudgetAnalyticsApp:
         except requests.exceptions.RequestException as exc:
             msg = f'Request failed: {exc}'
             st.error(msg)
-            logging.error(msg)
+            logging.exception(msg)
             return None
 
     def add_budget_entry(self):

@@ -45,7 +45,7 @@ class ColoredFormatter(logging.Formatter):
         super().__init__(*args, **kwargs)
         self.format_string = format_string
 
-    def format(self, record: logging.LogRecord) -> str:  # noqa: A003
+    def format(self, record: logging.LogRecord) -> str:
         """
         Format the specified record as text.
 
@@ -62,6 +62,6 @@ class ColoredFormatter(logging.Formatter):
         """
         color = self.__class__.colors.get(record.levelno)
         formatter = logging.Formatter(
-            '{0}{1}\x1b[0m'.format(color, self.format_string),
+            f'{color}{self.format_string}\x1b[0m',
         )
         return formatter.format(record)
