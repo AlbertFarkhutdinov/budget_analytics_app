@@ -1,6 +1,7 @@
 import logging
 
 import requests
+import streamlit as st
 
 logger = logging.getLogger(__name__)
 API_BASE_URL = 'http://127.0.0.1:8000'
@@ -10,74 +11,44 @@ TIMEOUT = 10
 class APIClient:
     """Handles API requests."""
 
-    @classmethod
+    @property
+    def token(self) -> str:
+        return st.session_state.get('token', '')
+
     def make_request(
-        cls,
+        self,
         endpoint: str,
         method: str = 'POST',
-        json_data: dict[str, str] | None = None,
+        json_data: dict[str, str | int | None] | None = None,
     ) -> dict[str, str]:
         """Unified method for handling API requests."""
         url = f'{API_BASE_URL}{endpoint}'
+        headers = {
+            **self._get_headers(),
+            'Content-Type': 'application/json',
+        }
         response = None
         try:
             response = requests.request(
                 method=method,
                 json=json_data,
                 url=url,
-                headers={'Content-Type': 'application/json'},
+                headers=headers,
                 timeout=TIMEOUT,
             )
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.RequestException:
-            logger.exception('API request failed.')
+        except requests.exceptions.RequestException as exc:
+            msg = f'API request failed: {exc}'
+            st.error(msg)
+            logger.exception(msg)
             try:
                 return response.json()
             except AttributeError:
                 return {'detail': 'Failed to connect to the server.'}
 
-    @classmethod
-    def register_user(
-        cls,
-        username: str,
-        password: str,
-    ) -> dict[str, str]:
-        logger.info(f'Registering user: {username}')
-        return cls.make_request(
-            endpoint='/auth/register',
-            json_data={
-                'username': username.strip(),
-                'password': password.strip(),
-            },
-        )
-
-    @classmethod
-    def confirm_user(
-        cls,
-        username: str,
-        confirmation_code: str,
-    ) -> dict[str, str]:
-        logger.info(f'Confirming user: {username}, code: {confirmation_code}')
-        return cls.make_request(
-            endpoint='/auth/confirm',
-            json_data={
-                'username': username.strip(),
-                'confirmation_code': confirmation_code.strip(),
-            },
-        )
-
-    @classmethod
-    def login_user(
-        cls,
-        username: str,
-        password: str,
-    ) -> dict[str, str]:
-        logger.info(f'Logging user: {username}')
-        return cls.make_request(
-            endpoint='/auth/login',
-            json_data={
-                'username': username.strip(),
-                'password': password.strip(),
-            },
-        )
+    def _get_headers(self) -> dict[str, str]:
+        """Return authorization headers if the user is logged in."""
+        if self.token:
+            return {'Authorization': f'Bearer {self.token}'}
+        return {}

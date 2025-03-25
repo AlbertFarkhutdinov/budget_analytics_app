@@ -1,26 +1,37 @@
 import streamlit as st
 
 from custom_logging import config_logging
-from frontend.api_client import APIClient
+from frontend.auth_api_client import AuthAPIClient
 
 
 class AuthApp:
     """Handles UI and authentication logic."""
 
     def __init__(self) -> None:
+        self.api = AuthAPIClient()
         self.username = ''
         self.password = ''
         self.action = ''
 
-    def register(self) -> None:
+    def run(self) -> None:
+        st.title('Authentication')
+        st.header('Login')
+        self.username = st.text_input('Username')
+        self.password = st.text_input('Password', type='password')
+        self.action = st.radio('Choose an action', ('Login', 'Register'))
+        if self.action == 'Register':
+            self._register()
+        elif self.action == 'Login':
+            self._login()
+
+    def _register(self) -> None:
         if st.button('Create Account'):
             if not self.username or not self.password:
                 st.error('Username and password cannot be empty.')
                 return
-            response = APIClient.register_user(self.username, self.password)
-            detail = response.get('detail', '')
+            response = self.api.register_user(self.username, self.password)
+            detail = self._handle_error(response=response)
             if detail:
-                st.error(detail)
                 return
             st.success('User registered, confirm the email')
 
@@ -33,26 +44,19 @@ class AuthApp:
             if not confirmation_code:
                 st.error('Confirmation code cannot be empty.')
                 return
-            confirm_response = APIClient.confirm_user(
+            confirm_response = self.api.confirm_user(
                 username=self.username,
                 confirmation_code=confirmation_code,
             )
-            detail = confirm_response.get('detail', '')
-            if detail:
-                st.error(detail)
-                return
-            st.success('User confirmed. You can now log in.')
+            if not self._handle_error(response=confirm_response):
+                st.success('User confirmed. You can now log in.')
 
-    def login(self) -> None:
-        login_clicked = st.button('Login')
-
-        if login_clicked:
+    def _login(self) -> None:
+        if st.button('Login'):
             if not self.username or not self.password:
                 st.error('Username and password cannot be empty.')
-            response = APIClient.login_user(self.username, self.password)
-            detail = response.get('detail', '')
-            if detail:
-                st.error(detail)
+            response = self.api.login_user(self.username, self.password)
+            self._handle_error(response=response)
             token = response.get('access_token', '')
             if token:
                 st.success('Logged in successfully!')
@@ -60,16 +64,13 @@ class AuthApp:
                 st.session_state.page = 'transactions'
                 st.rerun()
 
-    def run(self) -> None:
-        st.title('Authentication')
-        st.header('Login')
-        self.username = st.text_input('Username')
-        self.password = st.text_input('Password', type='password')
-        self.action = st.radio('Choose an action', ('Login', 'Register'))
-        if self.action == 'Register':
-            self.register()
-        elif self.action == 'Login':
-            self.login()
+    @classmethod
+    def _handle_error(cls, response: dict[str, str]) -> str:
+        detail = response.get('detail', '')
+        if detail:
+            st.error(detail)
+            return detail
+        return ''
 
 
 if __name__ == '__main__':
