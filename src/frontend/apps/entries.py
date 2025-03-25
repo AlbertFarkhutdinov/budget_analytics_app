@@ -23,7 +23,13 @@ class EntriesPage:
         st.header('Budget Entries')
         entries = self.api.get_budget_entries()
         if entries:
-            st.data_editor(entries, num_rows='dynamic')
+            st.data_editor(
+                entries,
+                column_config={
+                    'id': None,
+                },
+                num_rows='dynamic',
+            )
 
     def _add_budget_entry(self) -> None:
         """Handle adding a budget entry."""
