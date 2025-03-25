@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from budget_db_app import entries
+from custom_logging import config_logging
 
 
 def get_db() -> entries.session_local:
@@ -12,6 +13,7 @@ def get_db() -> entries.session_local:
         db.close()
 
 
+config_logging()
 entries_router = APIRouter()
 
 

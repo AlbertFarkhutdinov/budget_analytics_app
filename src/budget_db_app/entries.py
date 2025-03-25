@@ -2,16 +2,14 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import sqlalchemy as sql
-from fastapi import HTTPException
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy import text
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 
-from custom_logging import config_logging
-
-config_logging()
+from budget_db_app.exceptions import EntryNotFound
 
 
 class DBSettings(BaseSettings):
@@ -89,16 +87,23 @@ def create_database() -> None:
     )
     with temp_engine.connect() as conn:
         conn.execute(sql.text('COMMIT'))
-        db_name = db_settings.db_name
-        query_result = conn.execute(
-            sql.text(
-                f"SELECT 1 FROM pg_database WHERE datname='{db_name}'",
-            ),
+        sql_query = text(
+            """
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_database WHERE datname = :db_name
+                ) THEN
+                    EXECUTE format('CREATE DATABASE %I', :db_name);
+                END IF;
+            END $$;
+            """,
         )
-        if not query_result.fetchone():
-            conn.execute(
-                sql.text(f'CREATE DATABASE {db_settings.db_name}'),
-            )
+        conn.execute(
+            sql_query,
+            parameters={
+                'db_name': db_settings.db_name,
+            },
+        )
     temp_engine.dispose()
 
 
@@ -114,7 +119,7 @@ class BudgetService:
         db: Session,
         entry: BudgetEntrySchema,
     ) -> BudgetEntry:
-        db_entry = BudgetEntry(**entry.model_dump())
+        db_entry = BudgetEntry(**entry.model_dump(exclude_unset=True))
         db.add(db_entry)
         db.commit()
         db.refresh(db_entry)
@@ -140,7 +145,7 @@ class BudgetService:
             BudgetEntry.id == entry_id,
         ).first()
         if not entry:
-            raise HTTPException(status_code=404, detail='Entry not found')
+            raise EntryNotFound()
         for key, entry_value in updated_entry.model_dump().items():
             setattr(entry, key, entry_value)
         db.commit()
@@ -155,4 +160,5 @@ class BudgetService:
         if entry:
             db.delete(entry)
             db.commit()
-        return {'message': 'Entry deleted'}
+            return {'message': 'Entry deleted'}
+        raise EntryNotFound()
