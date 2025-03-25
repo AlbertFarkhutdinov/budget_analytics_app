@@ -10,29 +10,45 @@ class AuthApp:
 
     def __init__(self) -> None:
         self.api = AuthAPIClient()
-        self.username = ''
-        self.password = ''
-        self.action = ''
+        self._init_session_state()
+
+    @classmethod
+    def _init_session_state(cls) -> None:
+        """Initialize session state variables if they don't exist."""
+        if 'username' not in st.session_state:
+            st.session_state.username = ''
 
     def run(self) -> None:
+        """Main UI logic."""
         st.title('Authentication')
-        st.header('Login')
-        self.username = st.text_input('Username')
-        self.password = st.text_input('Password', type='password')
-        self.action = st.radio('Choose an action', ('Login', 'Register'))
-        if self.action == 'Register':
-            self._register()
-        elif self.action == 'Login':
-            self._login()
 
-    def _register(self) -> None:
+        if st.session_state.token:
+            st.success('You are already logged in!')
+            if st.button('Logout'):
+                self._logout()
+            return
+
+        st.header('Login / Register')
+        st.session_state.username = st.text_input(
+            'Username',
+            value=st.session_state.username,
+        )
+
+        password = st.text_input('Password', type='password')
+        action = st.radio('Choose an action', ('Login', 'Register'))
+        if action == 'Register':
+            self._register(st.session_state.username, password)
+        elif action == 'Login':
+            self._login(st.session_state.username, password)
+
+    def _register(self, username: str, password: str) -> None:
+        """Handles user registration and confirmation."""
         if st.button('Create Account'):
-            if not self.username or not self.password:
+            if not username or not password:
                 st.error('Username and password cannot be empty.')
                 return
-            response = self.api.register_user(self.username, self.password)
-            detail = self._handle_error(response=response)
-            if detail:
+            response = self.api.register_user(username, password)
+            if self._handle_error(response=response):
                 return
             st.success('User registered, confirm the email')
 
@@ -40,30 +56,39 @@ class AuthApp:
             'Enter confirmation code',
             max_chars=6,
         )
-        confirm_clicked = st.button('Confirm')
-        if confirm_clicked:
+        if st.button('Confirm'):
             if not confirmation_code:
                 st.error('Confirmation code cannot be empty.')
                 return
             confirm_response = self.api.confirm_user(
-                username=self.username,
+                username=username,
                 confirmation_code=confirmation_code,
             )
             if not self._handle_error(response=confirm_response):
                 st.success('User confirmed. You can now log in.')
 
-    def _login(self) -> None:
+    def _login(self, username: str, password: str) -> None:
+        """Handles user login."""
         if st.button('Login'):
-            if not self.username or not self.password:
+            if not username or not password:
                 st.error('Username and password cannot be empty.')
-            response = self.api.login_user(self.username, self.password)
-            self._handle_error(response=response)
+                return
+            response = self.api.login_user(username, password)
+            if self._handle_error(response=response):
+                return
             token = response.get('access_token', '')
             if token:
-                st.success('Logged in successfully!')
                 st.session_state.token = token
                 st.session_state.page = PageState.entries.value
+                st.success('Logged in successfully!')
                 st.rerun()
+
+    @classmethod
+    def _logout(cls) -> None:
+        """Handles user logout."""
+        st.session_state.token = None
+        st.session_state.username = ''
+        st.success('Logged out successfully!')
 
     @classmethod
     def _handle_error(cls, response: dict[str, str]) -> str:

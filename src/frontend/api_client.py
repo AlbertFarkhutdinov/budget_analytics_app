@@ -40,7 +40,6 @@ class APIClient:
             return response.json()
         except requests.exceptions.RequestException as exc:
             msg = f'API request failed: {exc}'
-            st.error(msg)
             logger.exception(msg)
             try:
                 return response.json()

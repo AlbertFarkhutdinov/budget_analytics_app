@@ -9,21 +9,13 @@ from frontend.page_states import PageState
 class MainApp:
 
     def __init__(self):
-        if 'page' not in st.session_state:
-            st.session_state.page = PageState.auth.value
-        if 'token' not in st.session_state:
-            st.session_state.token = ''
+        self._initialize_session_state()
         self.auth_app = AuthApp()
         self.transactions_page = TransactionsPage()
 
     def run(self) -> None:
         """Run the Streamlit app."""
-        page_state = st.session_state.page
-        if st.session_state.token and page_state != PageState.entries.value:
-            self._switch_page(PageState.entries.value)
-        elif not st.session_state.token and page_state != PageState.auth.value:
-            self._switch_page(PageState.auth.value)
-
+        self._handle_auth_redirect()
         entry_pages = {
             PageState.entries.value,
             PageState.new_entry.value,
@@ -32,6 +24,22 @@ class MainApp:
             self.transactions_page.run()
         elif st.session_state.page == PageState.auth.value:
             self.auth_app.run()
+
+    @classmethod
+    def _initialize_session_state(cls):
+        """Initialize Streamlit session state variables."""
+        if 'page' not in st.session_state:
+            st.session_state.page = PageState.auth.value
+        if 'token' not in st.session_state:
+            st.session_state.token = ''
+
+    def _handle_auth_redirect(self):
+        """Ensure proper navigation based on authentication state."""
+        page_state = st.session_state.page
+        if st.session_state.token and page_state != PageState.entries.value:
+            self._switch_page(PageState.entries.value)
+        elif not st.session_state.token and page_state != PageState.auth.value:
+            self._switch_page(PageState.auth.value)
 
     @classmethod
     def _switch_page(cls, page: str) -> None:
