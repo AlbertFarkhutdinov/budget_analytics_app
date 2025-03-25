@@ -3,10 +3,12 @@ from fastapi import FastAPI
 
 from api.auth import auth_router
 from api.entries import entries_router
+from api.reports import reports_router
 
 app = FastAPI()
 app.include_router(auth_router, prefix='/auth')
 app.include_router(entries_router, prefix='/entries')
+app.include_router(reports_router, prefix='/reports')
 
 
 def start_backend() -> None:

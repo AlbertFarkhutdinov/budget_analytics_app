@@ -7,20 +7,15 @@ class EntriesPage:
 
     def __init__(self) -> None:
         self.api = EntriesAPIClient()
-        self.token = st.session_state.get('token', '')
-        self.username = st.session_state.get('username', '')
-        self.password = ''
-        self.confirmation_code = ''
 
     def run(self) -> None:
         """Run the Streamlit app."""
-        st.title('Budget Analytics')
+        st.title('Transactions History')
         self._view_budget_entries()
         self._add_budget_entry()
 
     def _view_budget_entries(self) -> None:
         """Handle viewing budget entries."""
-        st.header('Budget Entries')
         entries = self.api.get_budget_entries()
         if entries:
             st.data_editor(
