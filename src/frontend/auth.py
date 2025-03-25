@@ -8,12 +8,9 @@ class AuthApp:
     """Handles UI and authentication logic."""
 
     def __init__(self) -> None:
-        st.title('Authentication')
-        st.header('Login')
-        self.username = st.text_input('Username')
-        self.password = st.text_input('Password', type='password')
-        self.action = st.radio('Choose an action', ('Login', 'Register'))
-        self.token = ''
+        self.username = ''
+        self.password = ''
+        self.action = ''
 
     def register(self) -> None:
         if st.button('Create Account'):
@@ -56,14 +53,19 @@ class AuthApp:
             detail = response.get('detail', '')
             if detail:
                 st.error(detail)
-            self.token = response.get('access_token', '')
-            if self.token:
+            token = response.get('access_token', '')
+            if token:
                 st.success('Logged in successfully!')
-                st.session_state['token'] = self.token
+                st.session_state.token = token
                 st.session_state.page = 'transactions'
                 st.rerun()
 
     def run(self) -> None:
+        st.title('Authentication')
+        st.header('Login')
+        self.username = st.text_input('Username')
+        self.password = st.text_input('Password', type='password')
+        self.action = st.radio('Choose an action', ('Login', 'Register'))
         if self.action == 'Register':
             self.register()
         elif self.action == 'Login':
