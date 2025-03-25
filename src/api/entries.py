@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from budget_db_app import entries
 
 
-def get_db() -> entries.Database.session_local:
-    db = entries.Database.session_local()
+def get_db() -> entries.session_local:
+    db = entries.session_local()
     try:
         yield db
     finally:

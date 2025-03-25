@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from custom_logging import config_logging
 
+config_logging()
+
 
 class DBSettings(BaseSettings):
     db_user: str = ''
@@ -25,7 +27,6 @@ class DBSettings(BaseSettings):
     )
 
 
-config_logging()
 db_settings = DBSettings()
 
 
@@ -38,57 +39,18 @@ DATABASE_URL = URL.create(
     database=db_settings.db_name,
 )
 
-
-class Database:
-    engine = sql.create_engine(
-        URL.create(
-            drivername='postgresql',
-            username=db_settings.db_user,
-            password=db_settings.db_password,
-            host=db_settings.db_host,
-            port=db_settings.db_port,
-            database=db_settings.db_name,
-        ),
-    )
-    session_local = sessionmaker(
-        autocommit=False,
-        autoflush=False,
-        bind=engine,
-    )
-    base = declarative_base()
-
-    @classmethod
-    def create_database(cls) -> None:
-        temp_engine = sql.create_engine(
-            URL.create(
-                drivername='postgresql',
-                username=db_settings.db_user,
-                password=db_settings.db_password,
-                host=db_settings.db_host,
-                port=db_settings.db_port,
-                database='postgres',
-            ),
-        )
-        with temp_engine.connect() as conn:
-            conn.execute(sql.text('COMMIT'))
-            db_name = db_settings.db_name
-            query_result = conn.execute(
-                sql.text(
-                    f"SELECT 1 FROM pg_database WHERE datname='{db_name}'",
-                ),
-            )
-            if not query_result.fetchone():
-                conn.execute(
-                    sql.text(f'CREATE DATABASE {db_settings.db_name}'),
-                )
-        temp_engine.dispose()
+engine = sql.create_engine(DATABASE_URL)
+session_local = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
 
 
-Database.create_database()
-Database.base.metadata.create_all(bind=Database.engine)
+Base = declarative_base()
 
 
-class BudgetEntry(Database.base):
+class BudgetEntry(Base):
     __tablename__ = 'budget_entries'
     id = sql.Column(sql.Integer, primary_key=True, index=True)
     date = sql.Column(sql.DateTime, default=datetime.now(timezone.utc))
@@ -112,6 +74,36 @@ class BudgetEntrySchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+def create_database() -> None:
+    temp_engine = sql.create_engine(
+        URL.create(
+            drivername='postgresql',
+            username=db_settings.db_user,
+            password=db_settings.db_password,
+            host=db_settings.db_host,
+            port=db_settings.db_port,
+            database='postgres',
+        ),
+    )
+    with temp_engine.connect() as conn:
+        conn.execute(sql.text('COMMIT'))
+        db_name = db_settings.db_name
+        query_result = conn.execute(
+            sql.text(
+                f"SELECT 1 FROM pg_database WHERE datname='{db_name}'",
+            ),
+        )
+        if not query_result.fetchone():
+            conn.execute(
+                sql.text(f'CREATE DATABASE {db_settings.db_name}'),
+            )
+    temp_engine.dispose()
+
+
+create_database()
+Base.metadata.create_all(bind=engine)
 
 
 class BudgetService:
