@@ -1,22 +1,12 @@
 import logging
 
 from fastapi import APIRouter
-from pydantic import BaseModel
 
 from auth_app.auth import AuthSettings, CognitoClient
+from auth_app.models import UserConfirm, UserLogin
 from custom_logging import config_logging
 
 logger = logging.getLogger(__name__)
-
-
-class UserLogin(BaseModel):
-    username: str
-    password: str
-
-
-class UserConfirm(BaseModel):
-    username: str
-    confirmation_code: str = ''
 
 
 config_logging()
