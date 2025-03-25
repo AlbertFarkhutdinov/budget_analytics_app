@@ -1,26 +1,22 @@
 import streamlit as st
 
 from custom_logging import config_logging
-from frontend.auth import AuthApp
-from frontend.entries import TransactionsPage
-from frontend.page_states import PageState
+from frontend.apps.auth import AuthPage
+from frontend.apps.entries import EntriesPage
+from frontend.apps.page_state import PageState
 
 
 class MainApp:
 
     def __init__(self):
         self._initialize_session_state()
-        self.auth_app = AuthApp()
-        self.transactions_page = TransactionsPage()
+        self.auth_app = AuthPage()
+        self.transactions_page = EntriesPage()
 
     def run(self) -> None:
         """Run the Streamlit app."""
         self._handle_auth_redirect()
-        entry_pages = {
-            PageState.entries.value,
-            PageState.new_entry.value,
-        }
-        if st.session_state.page in entry_pages:
+        if st.session_state.page == PageState.entries.value:
             self.transactions_page.run()
         elif st.session_state.page == PageState.auth.value:
             self.auth_app.run()

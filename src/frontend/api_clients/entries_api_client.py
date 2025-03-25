@@ -1,6 +1,6 @@
 import logging
 
-from frontend.api_client import APIClient
+from frontend.api_clients.api_client import APIClient
 
 logger = logging.getLogger(__name__)
 

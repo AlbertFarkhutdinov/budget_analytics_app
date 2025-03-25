@@ -1,11 +1,10 @@
 import streamlit as st
 
-from custom_logging import config_logging
-from frontend.auth_api_client import AuthAPIClient
-from frontend.page_states import PageState
+from frontend.api_clients.auth_api_client import AuthAPIClient
+from frontend.apps.page_state import PageState
 
 
-class AuthApp:
+class AuthPage:
     """Handles UI and authentication logic."""
 
     def __init__(self) -> None:
@@ -97,8 +96,3 @@ class AuthApp:
             st.error(detail)
             return detail
         return ''
-
-
-if __name__ == '__main__':
-    config_logging()
-    AuthApp().run()

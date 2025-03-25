@@ -1,10 +1,9 @@
 import streamlit as st
 
-from custom_logging import config_logging
-from frontend.entries_api_client import EntriesAPIClient
+from frontend.api_clients.entries_api_client import EntriesAPIClient
 
 
-class TransactionsPage:
+class EntriesPage:
 
     def __init__(self) -> None:
         self.api = EntriesAPIClient()
@@ -24,7 +23,7 @@ class TransactionsPage:
         st.header('Budget Entries')
         entries = self.api.get_budget_entries()
         if entries:
-            st.table(entries)
+            st.data_editor(entries, num_rows='dynamic')
 
     def _add_budget_entry(self) -> None:
         """Handle adding a budget entry."""
@@ -60,9 +59,3 @@ class TransactionsPage:
                         st.success('Entry added successfully')
                         st.session_state.show_form = False
                         st.rerun()
-
-
-if __name__ == '__main__':
-    config_logging()
-    app = TransactionsPage()
-    app.run()
