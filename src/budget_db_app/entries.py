@@ -132,7 +132,14 @@ class BudgetService:
         skip: int = 0,
         limit: int = 10,
     ) -> list[type[BudgetEntry]]:
-        return db.query(BudgetEntry).offset(skip).limit(limit).all()
+        return (
+            db.query(BudgetEntry)
+            .order_by(BudgetEntry.date.desc())
+            .order_by(BudgetEntry.id.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     @classmethod
     def update_entry(

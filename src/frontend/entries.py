@@ -2,7 +2,6 @@ import streamlit as st
 
 from custom_logging import config_logging
 from frontend.entries_api_client import EntriesAPIClient
-from frontend.page_states import PageState
 
 
 class TransactionsPage:
@@ -29,31 +28,38 @@ class TransactionsPage:
 
     def _add_budget_entry(self) -> None:
         """Handle adding a budget entry."""
-        if st.button('Add Budget Entry'):
-            st.session_state.page = PageState.new_entry.value
-            st.header('Add Budget Entry')
-            date = st.date_input('Date')
-            shop = st.text_input('Shop')
-            product = st.text_input('Product')
-            amount = st.number_input('Amount', min_value=0)
-            category = st.text_input('Category')
-            person = st.text_input('Person')
-            currency = st.text_input('Currency', value='USD')
+        if 'show_form' not in st.session_state:
+            st.session_state.show_form = False
 
-            if st.button('Submit Entry'):
-                entry = {
-                    'date': date.strftime('%Y-%m-%d'),
-                    'shop': shop,
-                    'product': product,
-                    'amount': amount,
-                    'category': category,
-                    'person': person,
-                    'currency': currency,
-                }
-                response = self.api.add_budget_entry(entry=entry)
-                if response:
-                    st.success('Entry added successfully')
-                    st.session_state.page = PageState.entries.value
+        if st.button('Add Budget Entry'):
+            st.session_state.show_form = True
+
+        if st.session_state.show_form:
+            with st.form('budget_entry_form'):
+                date = st.date_input('Date')
+                shop = st.text_input('Shop')
+                product = st.text_input('Product')
+                amount = st.number_input('Amount')
+                category = st.text_input('Category')
+                person = st.text_input('Person')
+                currency = st.text_input('Currency', value='USD')
+
+                submit = st.form_submit_button('Submit Entry')
+                if submit:
+                    entry = {
+                        'date': date.strftime('%Y-%m-%d'),
+                        'shop': shop,
+                        'product': product,
+                        'amount': amount,
+                        'category': category,
+                        'person': person,
+                        'currency': currency,
+                    }
+                    response = self.api.add_budget_entry(entry=entry)
+                    if response:
+                        st.success('Entry added successfully')
+                        st.session_state.show_form = False
+                        st.rerun()
 
 
 if __name__ == '__main__':
