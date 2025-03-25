@@ -6,7 +6,6 @@ from frontend.apps.entries import EntriesPage
 from frontend.apps.page_state import PageState
 from frontend.apps.reports import ReportsPage
 
-
 st.set_page_config(
     page_title='Budget Analysis',
 )
@@ -14,7 +13,7 @@ st.set_page_config(
 
 class MainApp:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._initialize_session_state()
         self.auth_page = AuthPage()
         self.entries_page = EntriesPage()
@@ -38,14 +37,14 @@ class MainApp:
                 self.reports_page.run()
 
     @classmethod
-    def _initialize_session_state(cls):
+    def _initialize_session_state(cls) -> None:
         """Initialize Streamlit session state variables."""
         if 'page' not in st.session_state:
             st.session_state.page = PageState.auth.value
         if 'token' not in st.session_state:
             st.session_state.token = ''
 
-    def _handle_auth_redirect(self):
+    def _handle_auth_redirect(self) -> None:
         """Ensure proper navigation based on authentication state."""
         page_state = st.session_state.page
         if st.session_state.token and page_state != PageState.entries.value:

@@ -1,15 +1,18 @@
 """The module contains a class for coloring of log messages."""
 import logging
 
+logging_colors = {
+    logging.DEBUG: '\x1b[38;20m',
+    logging.INFO: '\x1b[38;20m',
+    logging.WARNING: '\x1b[33;20m',
+    logging.ERROR: '\x1b[31;20m',
+    logging.CRITICAL: '\x1b[31;1m',
+}
+
 
 class ColoredFormatter(logging.Formatter):
     """
     Class for coloring of log messages.
-
-    Attributes
-    ----------
-    colors : dict
-        Logging levels and their colors.
 
     Methods
     -------
@@ -17,14 +20,6 @@ class ColoredFormatter(logging.Formatter):
         Format the specified record as text.
 
     """
-
-    colors = {
-        logging.DEBUG: '\x1b[38;20m',
-        logging.INFO: '\x1b[38;20m',
-        logging.WARNING: '\x1b[33;20m',
-        logging.ERROR: '\x1b[31;20m',
-        logging.CRITICAL: '\x1b[31;1m',
-    }
 
     def __init__(self, format_string: str, *args, **kwargs) -> None:
         """
@@ -60,7 +55,7 @@ class ColoredFormatter(logging.Formatter):
             A log record formatted as text.
 
         """
-        color = self.__class__.colors.get(record.levelno)
+        color = logging_colors.get(record.levelno)
         formatter = logging.Formatter(
             f'{color}{self.format_string}\x1b[0m',
         )

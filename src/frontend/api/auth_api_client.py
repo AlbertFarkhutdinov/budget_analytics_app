@@ -13,7 +13,7 @@ class AuthAPIClient(APIClient):
         username: str,
         password: str,
     ) -> dict[str, str]:
-        logger.info(f'Registering user: {username}')
+        logger.info('Registering user: %s', username)
         return self.make_request(
             endpoint='/auth/register',
             json_data={
@@ -27,7 +27,11 @@ class AuthAPIClient(APIClient):
         username: str,
         confirmation_code: str,
     ) -> dict[str, str]:
-        logger.info(f'Confirming user: {username}, code: {confirmation_code}')
+        logger.info(
+            'Confirming user: %s, code: %s',
+            username,
+            confirmation_code,
+        )
         return self.make_request(
             endpoint='/auth/confirm',
             json_data={
@@ -41,7 +45,7 @@ class AuthAPIClient(APIClient):
         username: str,
         password: str,
     ) -> dict[str, str]:
-        logger.info(f'Logging user: {username}')
+        logger.info('Logging user: %s', username)
         return self.make_request(
             endpoint='/auth/login',
             json_data={

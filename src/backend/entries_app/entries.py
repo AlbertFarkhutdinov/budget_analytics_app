@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from backend.entries_app.exceptions import EntryNotFound
 from backend.entries_app.settings import DBSettings
 
-
 db_settings = DBSettings()
 
 
@@ -139,7 +138,7 @@ class BudgetService:
             BudgetEntry.id == entry_id,
         ).first()
         if not entry:
-            raise EntryNotFound()
+            raise EntryNotFound
         for key, entry_value in updated_entry.model_dump().items():
             setattr(entry, key, entry_value)
         db.commit()
@@ -155,4 +154,4 @@ class BudgetService:
             db.delete(entry)
             db.commit()
             return {'message': 'Entry deleted'}
-        raise EntryNotFound()
+        raise EntryNotFound

@@ -23,7 +23,7 @@ class CognitoClient:
 
     def compute_secret_hash(self, username: str) -> str:
         if not self.settings.cognito_client_secret:
-            raise exceptions.MissingSecretError()
+            raise exceptions.MissingSecretError
         message = username + str(self.settings.cognito_client_id)
         dig = hmac.new(
             key=self.settings.cognito_client_secret.encode(ENCODING),
@@ -52,7 +52,7 @@ class CognitoClient:
                 ],
             )
         except self.client.exceptions.UsernameExistsException as exc:
-            raise exceptions.UserAlreadyExistsError() from exc
+            raise exceptions.UserAlreadyExistsError from exc
         except Exception as exc:
             raise exceptions.InternalServerError(
                 detail='Registration failed.',
@@ -73,7 +73,7 @@ class CognitoClient:
                 SecretHash=self.compute_secret_hash(username),
             )
         except self.client.exceptions.CodeMismatchException as exc:
-            raise exceptions.InvalidConfirmationCodeError() from exc
+            raise exceptions.InvalidConfirmationCodeError from exc
         except Exception as exc:
             raise exceptions.InternalServerError(
                 detail='Confirmation failed.',
@@ -97,11 +97,11 @@ class CognitoClient:
                 },
             )
         except self.client.exceptions.UserNotFoundException as exc:
-            raise exceptions.UserNotFoundError() from exc
+            raise exceptions.UserNotFoundError from exc
         except self.client.exceptions.NotAuthorizedException as exc:
-            raise exceptions.IncorrectCredentialsError() from exc
+            raise exceptions.IncorrectCredentialsError from exc
         except self.client.exceptions.UserNotConfirmedException as exc:
-            raise exceptions.UserNotConfirmedError() from exc
+            raise exceptions.UserNotConfirmedError from exc
         except Exception as exc:
             logger.exception('Login failed.')
             raise exceptions.InternalServerError(

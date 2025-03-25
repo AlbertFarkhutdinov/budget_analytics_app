@@ -11,14 +11,8 @@ class AuthPage:
         self.api = AuthAPIClient()
         self._init_session_state()
 
-    @classmethod
-    def _init_session_state(cls) -> None:
-        """Initialize session state variables if they don't exist."""
-        if 'username' not in st.session_state:
-            st.session_state.username = ''
-
     def run(self) -> None:
-        """Main UI logic."""
+        """Run the authentication page."""
         st.title('Authentication')
 
         if st.session_state.token:
@@ -40,8 +34,14 @@ class AuthPage:
         elif action == 'Login':
             self._login(st.session_state.username, password)
 
+    @classmethod
+    def _init_session_state(cls) -> None:
+        """Initialize session state variables if they don't exist."""
+        if 'username' not in st.session_state:
+            st.session_state.username = ''
+
     def _register(self, username: str, password: str) -> None:
-        """Handles user registration and confirmation."""
+        """Handle user registration and confirmation."""
         if st.button('Create Account'):
             if not username or not password:
                 st.error('Username and password cannot be empty.')
@@ -67,7 +67,7 @@ class AuthPage:
                 st.success('User confirmed. You can now log in.')
 
     def _login(self, username: str, password: str) -> None:
-        """Handles user login."""
+        """Handle user login."""
         if st.button('Login'):
             if not username or not password:
                 st.error('Username and password cannot be empty.')
@@ -84,7 +84,7 @@ class AuthPage:
 
     @classmethod
     def _logout(cls) -> None:
-        """Handles user logout."""
+        """Handle user logout."""
         st.session_state.token = None
         st.session_state.username = ''
         st.success('Logged out successfully!')
