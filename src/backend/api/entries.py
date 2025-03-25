@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from budget_db_app import entries
+from backend.entries_app import entries
 from custom_logging import config_logging
 
 

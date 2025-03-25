@@ -4,24 +4,12 @@ import hmac
 import logging
 
 import boto3
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from auth_app import exceptions
+from backend.auth_app import exceptions
+from backend.auth_app.settings import AuthSettings
 
 logger = logging.getLogger(__name__)
 ENCODING = 'utf-8'
-
-
-class AuthSettings(BaseSettings):
-    cognito_user_pool_id: str = ''
-    cognito_client_id: str = ''
-    cognito_region: str = ''
-    cognito_client_secret: str = ''
-
-    model_config = SettingsConfigDict(
-        env_file='src/auth_app/.env',
-        env_file_encoding=ENCODING,
-    )
 
 
 class CognitoClient:

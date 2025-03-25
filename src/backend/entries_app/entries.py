@@ -3,26 +3,13 @@ from typing import Optional
 
 import sqlalchemy as sql
 from pydantic import BaseModel
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import text
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 
-from budget_db_app.exceptions import EntryNotFound
-
-
-class DBSettings(BaseSettings):
-    db_user: str = ''
-    db_password: str = ''
-    db_host: str = ''
-    db_port: int = 5432
-    db_name: str = ''
-
-    model_config = SettingsConfigDict(
-        env_file='src/budget_db_app/.env',
-        env_file_encoding='utf-8',
-    )
+from backend.entries_app.exceptions import EntryNotFound
+from backend.entries_app.settings import DBSettings
 
 
 db_settings = DBSettings()

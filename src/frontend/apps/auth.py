@@ -1,6 +1,6 @@
 import streamlit as st
 
-from frontend.api_clients.auth_api_client import AuthAPIClient
+from frontend.api.auth_api_client import AuthAPIClient
 from frontend.apps.page_state import PageState
 
 

@@ -1,6 +1,6 @@
 import streamlit as st
 
-from frontend.api_clients.entries_api_client import EntriesAPIClient
+from frontend.api.entries_api_client import EntriesAPIClient
 
 
 class EntriesPage:

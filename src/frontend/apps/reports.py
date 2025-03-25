@@ -1,6 +1,6 @@
 import streamlit as st
 
-from frontend.api_clients.reports_api_client import ReportsAPIClient
+from frontend.api.reports_api_client import ReportsAPIClient
 
 
 class ReportsPage:

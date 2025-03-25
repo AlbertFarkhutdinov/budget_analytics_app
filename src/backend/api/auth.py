@@ -2,8 +2,9 @@ import logging
 
 from fastapi import APIRouter
 
-from auth_app.auth import AuthSettings, CognitoClient
-from auth_app.models import UserConfirm, UserLogin
+from backend.auth_app.cognito_client import CognitoClient
+from backend.auth_app.models import UserConfirm, UserLogin
+from backend.auth_app.settings import AuthSettings
 from custom_logging import config_logging
 
 logger = logging.getLogger(__name__)
