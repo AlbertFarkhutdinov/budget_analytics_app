@@ -2,6 +2,7 @@ import streamlit as st
 
 from custom_logging import config_logging
 from frontend.auth_api_client import AuthAPIClient
+from frontend.page_states import PageState
 
 
 class AuthApp:
@@ -61,7 +62,7 @@ class AuthApp:
             if token:
                 st.success('Logged in successfully!')
                 st.session_state.token = token
-                st.session_state.page = 'transactions'
+                st.session_state.page = PageState.entries.value
                 st.rerun()
 
     @classmethod

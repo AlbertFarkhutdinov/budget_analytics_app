@@ -2,6 +2,7 @@ import streamlit as st
 
 from custom_logging import config_logging
 from frontend.entries_api_client import EntriesAPIClient
+from frontend.page_states import PageState
 
 
 class TransactionsPage:
@@ -29,7 +30,7 @@ class TransactionsPage:
     def _add_budget_entry(self) -> None:
         """Handle adding a budget entry."""
         if st.button('Add Budget Entry'):
-            st.session_state.page = 'transactions_adding'
+            st.session_state.page = PageState.new_entry.value
             st.header('Add Budget Entry')
             date = st.date_input('Date')
             shop = st.text_input('Shop')
@@ -52,7 +53,7 @@ class TransactionsPage:
                 response = self.api.add_budget_entry(entry=entry)
                 if response:
                     st.success('Entry added successfully')
-                    st.session_state.page = 'transactions'
+                    st.session_state.page = PageState.entries.value
 
 
 if __name__ == '__main__':

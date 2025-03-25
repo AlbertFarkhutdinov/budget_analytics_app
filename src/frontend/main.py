@@ -3,13 +3,14 @@ import streamlit as st
 from custom_logging import config_logging
 from frontend.auth import AuthApp
 from frontend.entries import TransactionsPage
+from frontend.page_states import PageState
 
 
 class MainApp:
 
     def __init__(self):
         if 'page' not in st.session_state:
-            st.session_state.page = 'auth'
+            st.session_state.page = PageState.auth.value
         if 'token' not in st.session_state:
             st.session_state.token = ''
         self.auth_app = AuthApp()
@@ -17,14 +18,19 @@ class MainApp:
 
     def run(self) -> None:
         """Run the Streamlit app."""
-        if st.session_state.token and st.session_state.page != 'transactions':
-            self._switch_page('transactions')
-        elif not st.session_state.token and st.session_state.page != 'auth':
-            self._switch_page('auth')
+        page_state = st.session_state.page
+        if st.session_state.token and page_state != PageState.entries.value:
+            self._switch_page(PageState.entries.value)
+        elif not st.session_state.token and page_state != PageState.auth.value:
+            self._switch_page(PageState.auth.value)
 
-        if st.session_state.page.startswith('transactions'):
+        entry_pages = {
+            PageState.entries.value,
+            PageState.new_entry.value,
+        }
+        if st.session_state.page in entry_pages:
             self.transactions_page.run()
-        elif st.session_state.page == 'auth':
+        elif st.session_state.page == PageState.auth.value:
             self.auth_app.run()
 
     @classmethod
