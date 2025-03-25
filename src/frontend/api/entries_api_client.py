@@ -30,3 +30,17 @@ class EntriesAPIClient(APIClient):
         if response:
             return response
         return {}
+
+    def save_changed_entries(
+        self,
+        entries: list[dict[str, str | int | None]],
+    ) -> dict[str, str]:
+        """Handle saving changes budget entries."""
+        response = self.make_request(
+            method='POST',
+            endpoint='/entries/update',
+            json_data=entries,
+        )
+        if response:
+            return response
+        return {}

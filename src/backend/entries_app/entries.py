@@ -128,22 +128,29 @@ class BudgetService:
         )
 
     @classmethod
-    def update_entry(
+    def update_entries(
         cls,
         db: Session,
-        entry_id: int,
-        updated_entry: BudgetEntrySchema,
-    ) -> type[BudgetEntry]:
-        entry = db.query(BudgetEntry).filter(
-            BudgetEntry.id == entry_id,
-        ).first()
-        if not entry:
+        updated_entries: list[BudgetEntrySchema],
+    ) -> dict[str, str]:
+        updated_entries = sorted(updated_entries, key=lambda entry: entry.id)
+        entry_ids = [entry.id for entry in updated_entries]
+
+        entries = (
+            db.query(BudgetEntry)
+            .filter(BudgetEntry.id.in_(entry_ids))
+            .order_by(BudgetEntry.id)
+            .all()
+        )
+        if not entries:
             raise EntryNotFound
-        for key, entry_value in updated_entry.model_dump().items():
-            setattr(entry, key, entry_value)
+        for entry, updated_entry in zip(entries, updated_entries):
+            for key, entry_value in updated_entry.model_dump().items():
+                setattr(entry, key, entry_value)
         db.commit()
-        db.refresh(entry)
-        return entry
+        for entry in entries:
+            db.refresh(entry)
+        return {'message': 'Entries updated successfully.'}
 
     @classmethod
     def delete_entry(cls, db: Session, entry_id: int) -> dict[str, str]:

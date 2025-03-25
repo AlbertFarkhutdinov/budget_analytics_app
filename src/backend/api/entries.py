@@ -21,15 +21,11 @@ def create_entry(
     return entries.BudgetService.create_entry(db, entry)
 
 
-@entries_router.put(
-    path='/{entry_id}',
-    response_model=entries.BudgetEntrySchema,
-)
-def update_entry(
-    entry_id: int,
-    updated_entry: entries.BudgetEntrySchema,
-) -> type[entries.BudgetEntry]:
-    return entries.BudgetService.update_entry(db, entry_id, updated_entry)
+@entries_router.post(path='/update')
+def update_entries(
+    updated_entries: list[entries.BudgetEntrySchema],
+) -> dict[str, str]:
+    return entries.BudgetService.update_entries(db, updated_entries)
 
 
 @entries_router.delete(path='/{entry_id}')

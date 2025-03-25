@@ -25,16 +25,19 @@ class MainApp:
         if st.session_state.page == PageState.auth.value:
             self.auth_page.run()
         else:
-            sidebar = st.sidebar.radio(
-                'Select a page:',
-                ['History', 'Reports'],
-            )
-            if sidebar == 'History':
-                st.session_state.page = PageState.entries.value
-                self.entries_page.run()
-            elif sidebar == 'Reports':
-                st.session_state.page = PageState.reports.value
-                self.reports_page.run()
+            self.run_after_login()
+
+    def run_after_login(self) -> None:
+        sidebar = st.sidebar.radio(
+            'Select a page:',
+            ['History', 'Reports'],
+        )
+        if sidebar == 'History':
+            st.session_state.page = PageState.entries.value
+            self.entries_page.run()
+        elif sidebar == 'Reports':
+            st.session_state.page = PageState.reports.value
+            self.reports_page.run()
 
     @classmethod
     def _initialize_session_state(cls) -> None:
@@ -63,3 +66,4 @@ if __name__ == '__main__':
     config_logging()
     app = MainApp()
     app.run()
+    # app.run_after_login() # for tests

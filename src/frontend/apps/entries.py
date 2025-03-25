@@ -18,13 +18,19 @@ class EntriesPage:
         """Handle viewing budget entries."""
         entries = self.api.get_budget_entries()
         if entries:
-            st.data_editor(
+            entries_table = st.data_editor(
                 entries,
-                column_config={
-                    'id': None,
-                },
+                # column_config={
+                #     'id': None,
+                # },
                 num_rows='dynamic',
             )
+            if st.button('Save Changes'):
+                response = self.api.save_changed_entries(
+                    entries=entries_table,
+                )
+                if not self._handle_error(response=response):
+                    st.success('Entries are saved successfully.')
 
     def _add_budget_entry(self) -> None:
         """Handle adding a budget entry."""
@@ -60,3 +66,11 @@ class EntriesPage:
                         st.success('Entry added successfully')
                         st.session_state.show_form = False
                         st.rerun()
+
+    @classmethod
+    def _handle_error(cls, response: dict[str, str]) -> str:
+        detail = response.get('detail', '')
+        if detail:
+            st.error(detail)
+            return detail
+        return ''
