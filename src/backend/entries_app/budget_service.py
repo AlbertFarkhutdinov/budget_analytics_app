@@ -1,8 +1,7 @@
 import sqlalchemy as sql
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
-from backend.entries_app.exceptions import ProcessingError
 from backend.entries_app.models import BudgetEntry, BudgetEntrySchema
 
 
@@ -44,33 +43,20 @@ class BudgetService:
         engine: sql.Engine,
         updated_entries: list[BudgetEntrySchema],
     ) -> dict[str, str]:
-        updated_entries = sorted(
-            updated_entries,
-            key=lambda entry: entry.id,
-        )
-        entry_ids = [entry.id for entry in updated_entries]
-        stmt = (
-            sql.select(BudgetEntry)
-            .filter(BudgetEntry.id.in_(entry_ids))
-            .order_by(BudgetEntry.id)
-        )
         with Session(engine) as session:
-            entries = list(session.scalars(stmt))
-            existing_entries = {
-                entry.id: entry
-                for entry in entries
-            }
             for updated_entry in updated_entries:
-                entry = existing_entries.get(updated_entry.id, None)
-                if entry is None:
-                    new_entry = BudgetEntry(**updated_entry.model_dump())
-                    session.add(new_entry)
+                stmt = (
+                    sql.select(BudgetEntry)
+                    .where(BudgetEntry.id.in_([updated_entry.id]))
+                    .order_by(BudgetEntry.id)
+                )
+                try:
+                    entry = session.scalars(stmt).one()
+                except NoResultFound:
+                    entry = BudgetEntry(**updated_entry.model_dump())
+                    session.add(entry)
                 else:
                     for key, field in updated_entry.model_dump().items():
                         setattr(entry, key, field)
-            try:
-                session.commit()
-            except IntegrityError as exc:
-                session.rollback()
-                raise ProcessingError from exc
+            session.commit()
             return {'message': 'Entries processed successfully.'}
