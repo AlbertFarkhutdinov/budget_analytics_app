@@ -11,3 +11,13 @@ class EntryNotFound(HTTPException):
             status_code=HTTPStatus.NOT_FOUND,
             detail='Entry not found.',
         )
+
+
+class ProcessingError(HTTPException):
+
+    def __init__(self) -> None:
+        """Initialize ProcessingError."""
+        super().__init__(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail='Error processing entries.',
+        )

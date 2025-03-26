@@ -3,7 +3,6 @@ from fastapi import APIRouter
 from backend.entries_app import entries
 from custom_logging import config_logging
 
-
 config_logging()
 entries_router = APIRouter()
 db = entries.session_local()

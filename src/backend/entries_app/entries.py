@@ -1,14 +1,14 @@
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 import sqlalchemy as sql
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.engine import URL
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 
-from backend.entries_app.exceptions import EntryNotFound
+from backend.entries_app.exceptions import EntryNotFound, ProcessingError
 from backend.entries_app.settings import DBSettings
 
 db_settings = DBSettings()
@@ -37,7 +37,7 @@ Base = declarative_base()
 class BudgetEntry(Base):
     __tablename__ = 'budget_entries'
     id = sql.Column(sql.Integer, primary_key=True, index=True)
-    date = sql.Column(sql.DateTime, default=datetime.now(timezone.utc))
+    date = sql.Column(sql.DateTime, default=datetime.now(UTC))
     shop = sql.Column(sql.String, index=True)
     product = sql.Column(sql.String)
     amount = sql.Column(sql.Float)
@@ -47,7 +47,7 @@ class BudgetEntry(Base):
 
 
 class BudgetEntrySchema(BaseModel):
-    id: Optional[int] = None
+    id: int | None = None
     date: datetime
     shop: str
     product: str
@@ -135,22 +135,31 @@ class BudgetService:
     ) -> dict[str, str]:
         updated_entries = sorted(updated_entries, key=lambda entry: entry.id)
         entry_ids = [entry.id for entry in updated_entries]
-
         entries = (
             db.query(BudgetEntry)
             .filter(BudgetEntry.id.in_(entry_ids))
             .order_by(BudgetEntry.id)
             .all()
         )
-        if not entries:
-            raise EntryNotFound
-        for entry, updated_entry in zip(entries, updated_entries):
-            for key, entry_value in updated_entry.model_dump().items():
-                setattr(entry, key, entry_value)
-        db.commit()
-        for entry in entries:
-            db.refresh(entry)
-        return {'message': 'Entries updated successfully.'}
+        existing_entries = {
+            entry.id: entry
+            for entry in entries
+        }
+        for updated_entry in updated_entries:
+            # noinspection PyTypeChecker
+            entry = existing_entries.get(updated_entry.id, None)
+            if entry is not None:
+                for key, value in updated_entry.model_dump().items():
+                    setattr(entry, key, value)
+            else:
+                new_entry = BudgetEntry(**updated_entry.model_dump())
+                db.add(new_entry)
+        try:
+            db.commit()
+        except IntegrityError as exc:
+            db.rollback()
+            raise ProcessingError from exc
+        return {'message': 'Entries processed successfully.'}
 
     @classmethod
     def delete_entry(cls, db: Session, entry_id: int) -> dict[str, str]:
