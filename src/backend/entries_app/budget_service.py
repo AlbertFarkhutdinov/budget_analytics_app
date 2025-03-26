@@ -1,4 +1,4 @@
-from sqlalchemy import Engine
+import sqlalchemy as sql
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,7 @@ class BudgetService:
     @classmethod
     def create_entry(
         cls,
-        engine: Engine,
+        engine: sql.Engine,
         entry: BudgetEntrySchema,
     ) -> dict[str, str]:
         with Session(engine) as session:
@@ -22,40 +22,40 @@ class BudgetService:
             return {'message': 'Entries processed successfully.'}
 
     @classmethod
-    def get_entries(
+    def read_entries(
         cls,
-        engine: Engine,
+        engine: sql.Engine,
         skip: int = 0,
         limit: int = 10,
-    ) -> list[type[BudgetEntry]]:
+    ) -> list[BudgetEntry]:
+        stmt = (
+            sql.select(BudgetEntry)
+            .order_by(BudgetEntry.date.desc())
+            .order_by(BudgetEntry.id.desc())
+            .offset(skip)
+            .limit(limit)
+        )
         with Session(engine) as session:
-            return (
-                session.query(BudgetEntry)
-                .order_by(BudgetEntry.date.desc())
-                .order_by(BudgetEntry.id.desc())
-                .offset(skip)
-                .limit(limit)
-                .all()
-            )
+            return list(session.scalars(stmt))
 
     @classmethod
     def update_entries(
         cls,
-        engine: Engine,
+        engine: sql.Engine,
         updated_entries: list[BudgetEntrySchema],
     ) -> dict[str, str]:
+        updated_entries = sorted(
+            updated_entries,
+            key=lambda entry: entry.id,
+        )
+        entry_ids = [entry.id for entry in updated_entries]
+        stmt = (
+            sql.select(BudgetEntry)
+            .filter(BudgetEntry.id.in_(entry_ids))
+            .order_by(BudgetEntry.id)
+        )
         with Session(engine) as session:
-            updated_entries = sorted(
-                updated_entries,
-                key=lambda entry: entry.id,
-            )
-            entry_ids = [entry.id for entry in updated_entries]
-            entries = (
-                session.query(BudgetEntry)
-                .filter(BudgetEntry.id.in_(entry_ids))
-                .order_by(BudgetEntry.id)
-                .all()
-            )
+            entries = list(session.scalars(stmt))
             existing_entries = {
                 entry.id: entry
                 for entry in entries
