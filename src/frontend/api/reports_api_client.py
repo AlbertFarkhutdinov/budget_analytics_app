@@ -1,6 +1,6 @@
 import logging
 
-from frontend.api.api_client import APIClient
+from frontend.api.api_client import APIClient, ReportType
 
 logger = logging.getLogger(__name__)
 
@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class ReportsAPIClient(APIClient):
     """Handles API requests."""
 
-    def generate_report(self, report_type: str) -> dict[str, str]:
+    def generate_report(self, report_type: str) -> ReportType:
         report = self.make_request(
             method='POST',
             endpoint=f'/reports/generate/{report_type}',
@@ -17,7 +17,7 @@ class ReportsAPIClient(APIClient):
             return report
         return {}
 
-    def load_last_report(self, report_type: str) -> dict[str, str]:
+    def load_last_report(self, report_type: str) -> ReportType:
         report = self.make_request(
             method='GET',
             endpoint=f'/reports/latest/{report_type}',

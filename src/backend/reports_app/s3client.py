@@ -5,6 +5,7 @@ from pathlib import Path
 import fsspec
 from dotenv import load_dotenv
 
+from backend.reports_app.reports_generator import ReportType
 from backend.reports_app.settings import S3Settings
 
 load_dotenv()
@@ -60,7 +61,7 @@ class S3Client:
 
     def save_json(
         self,
-        json_data: dict[str, dict[str, list[float]]],
+        json_data: ReportType,
         remote_path: str,
     ) -> None:
         """Save JSON data to S3."""
@@ -68,7 +69,7 @@ class S3Client:
         with self.filesystem.open(s3file, mode='w') as s3file:
             json.dump(json_data, s3file)
 
-    def load_json(self, remote_path: str) -> dict[str, dict[str, list[float]]]:
+    def load_json(self, remote_path: str) -> ReportType:
         """Load JSON data from S3."""
         s3file = self.get_s3path(remote_path=remote_path)
         if not self.filesystem.exists(s3file):

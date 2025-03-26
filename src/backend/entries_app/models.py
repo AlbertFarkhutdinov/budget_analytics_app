@@ -6,7 +6,7 @@ from sqlalchemy import orm
 
 
 class Base(orm.DeclarativeBase):
-    pass
+    pass  # noqa: WPS420,WPS604
 
 
 class BudgetEntry(Base):

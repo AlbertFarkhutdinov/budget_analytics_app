@@ -7,6 +7,10 @@ logger = logging.getLogger(__name__)
 API_BASE_URL = 'http://127.0.0.1:8000'
 TIMEOUT = 10
 EntryType = dict[str, str | int | None]
+ReportType = dict[
+    str,
+    dict[str, list[float | str]],
+]
 
 
 class APIClient:
@@ -21,7 +25,7 @@ class APIClient:
         endpoint: str,
         method: str = 'POST',
         json_data: EntryType | list[EntryType] | None = None,
-    ) -> dict[str, str]:
+    ) -> dict[str, str] | ReportType:
         """Unified method for handling API requests."""
         url = f'{API_BASE_URL}{endpoint}'
         headers = {

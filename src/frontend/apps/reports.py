@@ -15,8 +15,7 @@ class ReportsPage:
         st.title('Budget Reports')
 
         report_types = {
-            'mean_expenses_per_day': 'Mean Expenses Per Day',
-            'category_expenses_per_month': 'Category Expenses Per Month',
+            'expenses_per_day': 'Expenses Per Day',
         }
         for report_key, report_name in report_types.items():
             st.subheader(report_name)
