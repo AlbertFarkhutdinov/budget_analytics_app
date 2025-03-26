@@ -37,14 +37,13 @@ class APIClient:
                 headers=headers,
                 timeout=TIMEOUT,
             )
-            return response.json()
         except requests.exceptions.RequestException as exc:
-            msg = f'API request failed: {exc}'
-            logger.exception(msg)
+            logger.error(f'API request failed: {exc}')  # noqa: TRY400
             try:
                 return response.json()
             except AttributeError:
                 return {'detail': 'Failed to connect to the server.'}
+        return response.json()
 
     def _get_headers(self) -> dict[str, str]:
         """Return authorization headers if the user is logged in."""
