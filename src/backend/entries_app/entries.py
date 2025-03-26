@@ -148,12 +148,12 @@ class BudgetService:
         for updated_entry in updated_entries:
             # noinspection PyTypeChecker
             entry = existing_entries.get(updated_entry.id, None)
-            if entry is not None:
-                for key, value in updated_entry.model_dump().items():
-                    setattr(entry, key, value)
-            else:
+            if entry is None:
                 new_entry = BudgetEntry(**updated_entry.model_dump())
                 db.add(new_entry)
+            else:
+                for field, field_value in updated_entry.model_dump().items():
+                    setattr(entry, field, field_value)
         try:
             db.commit()
         except IntegrityError as exc:
