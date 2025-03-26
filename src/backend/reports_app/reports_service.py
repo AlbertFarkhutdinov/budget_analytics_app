@@ -1,28 +1,18 @@
 import pandas as pd
 import sqlalchemy as sql
 
-from backend.entries_app.settings import DBSettings
+from backend.entries_app.models import BudgetEntry
 from backend.reports_app.exceptions import InvalidReportType, ReportNotFound
 from backend.reports_app.s3client import S3Client
-
-db_settings = DBSettings()
-
-
-DATABASE_URL = sql.URL.create(
-    drivername='postgresql',
-    username=db_settings.db_user,
-    password=db_settings.db_password,
-    host=db_settings.db_host,
-    port=db_settings.db_port,
-    database=db_settings.db_name,
-)
-
-engine = sql.create_engine(DATABASE_URL)
 
 
 class ReportsService:
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        engine: sql.Engine,
+    ) -> None:
+        self.engine = engine
         self.s3client = S3Client()
 
     def generate_report(
@@ -31,11 +21,17 @@ class ReportsService:
     ) -> dict[str, dict[str, list[float]]]:
         """Generate a report."""
         if report_type == 'mean_expenses_per_day':
+            df = (
+                self._fetch_data(query=sql.select(BudgetEntry))
+                .groupby('date')
+                .sum(numeric_only=True)
+                .reset_index()
+            )
             # TODO replace test report with real calculations
             report = {
                 'plot_data': {
-                    'x': [0, 1, 2, 3, 4],
-                    'y': [0, 1, 4, 9, 16],
+                    'x': df.index.values.tolist(),
+                    'y': df['amount'].values.tolist(),
                 },
             }
         elif report_type == 'category_expenses_per_month':
@@ -67,8 +63,7 @@ class ReportsService:
             return report
         raise ReportNotFound
 
-    @classmethod
-    def _fetch_data(cls, query: str) -> pd.DataFrame:
+    def _fetch_data(self, query: sql.Select) -> pd.DataFrame:
         """Fetch data from RDS."""
-        with engine.connect() as connection:
+        with self.engine.connect() as connection:
             return pd.read_sql(query, connection)
