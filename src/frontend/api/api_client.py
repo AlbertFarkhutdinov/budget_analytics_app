@@ -37,7 +37,6 @@ class APIClient:
                 headers=headers,
                 timeout=TIMEOUT,
             )
-            response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as exc:
             msg = f'API request failed: {exc}'

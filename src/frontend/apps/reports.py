@@ -39,5 +39,6 @@ class ReportsPage:
             plot_data = last_report.get('plot_data')
             if plot_data is not None:
                 fig, ax = plt.subplots()
+                plt.plot(plot_data['x'], plot_data['y'])
                 ax.set_title(report_name)
                 st.pyplot(fig)
