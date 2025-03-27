@@ -18,6 +18,7 @@ dependencies = [
     "pydantic-settings<2.9",
     "pyjwt<2.11",
     "python-dotenv<1.2",
+    "python-multipart<0.1",
     "requests<2.33",
     "s3fs<0.5",
     "sqlalchemy<2.1",
