@@ -44,3 +44,17 @@ class EntriesAPIClient(APIClient):
         if response:
             return response
         return {}
+
+    def upload_entries_from_csv(
+        self,
+        entries: list[dict[str, str | int | None]],
+    ) -> dict[str, str]:
+        """Handle uploading budget entries from CSV."""
+        response = self.make_request(
+            method='POST',
+            endpoint='/entries/upload',
+            json_data=entries,
+        )
+        if response:
+            return response
+        return {}

@@ -1,3 +1,6 @@
+import json
+
+import pandas as pd
 import streamlit as st
 
 from frontend.api.entries_api_client import EntriesAPIClient
@@ -20,9 +23,7 @@ class EntriesPage:
         if entries:
             entries_table = st.data_editor(
                 entries,
-                # column_config={
-                #     'id': None,
-                # },
+                # column_config={'id': None},
                 num_rows='dynamic',
             )
             if st.button('Save Changes'):
@@ -31,6 +32,21 @@ class EntriesPage:
                 )
                 if not self._handle_error(response=response):
                     st.success('Entries are saved successfully.')
+
+            uploaded_file = st.file_uploader(
+                'Upload CSV (sep: ";")',
+                type=['csv'],
+            )
+            if uploaded_file:
+                uploaded_data = pd.read_csv(
+                    uploaded_file,
+                    sep=';',
+                ).to_json(orient='records')
+                response = self.api.upload_entries_from_csv(
+                    entries=json.loads(uploaded_data),
+                )
+                if not self._handle_error(response=response):
+                    st.success('CSV uploaded successfully!')
 
     def _add_budget_entry(self) -> None:
         """Handle adding a budget entry."""
