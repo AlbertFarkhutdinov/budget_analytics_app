@@ -53,7 +53,11 @@ class BudgetService:
                 try:
                     entry = session.scalars(stmt).one()
                 except NoResultFound:
-                    entry = BudgetEntry(**updated_entry.model_dump())
+                    dumped_model = updated_entry.model_dump(exclude_unset=True)
+                    entry_id = dumped_model.get('id')
+                    if entry_id in {-1, None}:
+                        dumped_model.pop('id')
+                    entry = BudgetEntry(**dumped_model)
                     session.add(entry)
                 else:
                     for key, field in updated_entry.model_dump().items():

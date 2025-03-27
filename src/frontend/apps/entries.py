@@ -27,11 +27,19 @@ class EntriesPage:
                 num_rows='dynamic',
             )
             if st.button('Save Changes'):
-                response = self.api.save_changed_entries(
-                    entries=entries_table,
-                )
-                if not self._handle_error(response=response):
-                    st.success('Entries are saved successfully.')
+                entries_df = pd.DataFrame(entries_table)
+                for column in entries_df.columns:
+                    if column != 'id' and entries_df[column].isna().sum():
+                        st.error(f'Fill "{column}" values')
+                        break
+                else:
+                    response = self.api.save_changed_entries(
+                        entries=json.loads(
+                            entries_df.to_json(orient='records'),
+                        ),
+                    )
+                    if not self._handle_error(response=response):
+                        st.success('Entries are saved successfully.')
 
             uploaded_file = st.file_uploader(
                 'Upload CSV (sep: ";")',
