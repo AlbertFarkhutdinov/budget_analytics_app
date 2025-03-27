@@ -1,29 +1,33 @@
 import sqlalchemy as sql
+from fastapi import UploadFile
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
+from backend.entries_app.exceptions import NoFileUploaded
 from backend.entries_app.models import BudgetEntry, BudgetEntrySchema
 
 
 class BudgetService:
 
-    @classmethod
-    def create_entry(
-        cls,
+    def __init__(
+        self,
         engine: sql.Engine,
+    ) -> None:
+        self.engine = engine
+
+    def create_entry(
+        self,
         entry: BudgetEntrySchema,
     ) -> dict[str, str]:
-        with Session(engine) as session:
+        with Session(self.engine) as session:
             db_entry = BudgetEntry(**entry.model_dump(exclude_unset=True))
             session.add(db_entry)
             session.commit()
             session.refresh(db_entry)
             return {'message': 'Entries processed successfully.'}
 
-    @classmethod
     def read_entries(
-        cls,
-        engine: sql.Engine,
+        self,
         skip: int = 0,
         limit: int = 10,
     ) -> list[BudgetEntry]:
@@ -34,16 +38,14 @@ class BudgetService:
             .offset(skip)
             .limit(limit)
         )
-        with Session(engine) as session:
+        with Session(self.engine) as session:
             return list(session.scalars(stmt))
 
-    @classmethod
     def update_entries(
-        cls,
-        engine: sql.Engine,
+        self,
         updated_entries: list[BudgetEntrySchema],
     ) -> dict[str, str]:
-        with Session(engine) as session:
+        with Session(self.engine) as session:
             for updated_entry in updated_entries:
                 stmt = (
                     sql.select(BudgetEntry)
@@ -64,3 +66,12 @@ class BudgetService:
                         setattr(entry, key, field)
             session.commit()
             return {'message': 'Entries processed successfully.'}
+
+    def upload_entries(
+        self,
+        uploaded_entries: UploadFile,
+    ) -> dict[str, str]:
+        if not uploaded_entries:
+            raise NoFileUploaded
+        # TODO
+        return {'message': 'Entries uploaded successfully.'}

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile
 
 from backend.entries_app.budget_service import BudgetService
 from backend.entries_app.db_engine import create_postgres_database, get_engine
@@ -16,22 +16,23 @@ entries_router = APIRouter()
 def create_entry(
     entry: BudgetEntrySchema,
 ) -> dict[str, str]:
-    return BudgetService.create_entry(
-        engine=engine,
-        entry=entry,
-    )
+    return BudgetService(engine).create_entry(entry=entry)
 
 
 @entries_router.get(path='/', response_model=list[BudgetEntrySchema])
 def read_entries() -> list[BudgetEntry]:
-    return BudgetService.read_entries(engine)
+    return BudgetService(engine).read_entries()
 
 
 @entries_router.post(path='/update')
 def update_entries(
     updated_entries: list[BudgetEntrySchema],
 ) -> dict[str, str]:
-    return BudgetService.update_entries(
-        engine=engine,
-        updated_entries=updated_entries,
-    )
+    return BudgetService(engine).update_entries(updated_entries)
+
+
+@entries_router.post(path='/upload', response_model=dict)
+def upload_entries(
+    uploaded_file: UploadFile,
+) -> dict[str, str]:
+    return BudgetService(engine).upload_entries(uploaded_file)

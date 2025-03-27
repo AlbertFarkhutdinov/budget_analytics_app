@@ -41,20 +41,25 @@ class EntriesPage:
                     if not self._handle_error(response=response):
                         st.success('Entries are saved successfully.')
 
-            uploaded_file = st.file_uploader(
+            upload = st.file_uploader(
                 'Upload CSV (sep: ";")',
                 type=['csv'],
             )
-            if uploaded_file:
-                uploaded_data = pd.read_csv(
-                    uploaded_file,
-                    sep=';',
-                ).to_json(orient='records')
-                response = self.api.upload_entries_from_csv(
-                    entries=json.loads(uploaded_data),
-                )
-                if not self._handle_error(response=response):
-                    st.success('CSV uploaded successfully!')
+            if upload:
+                with st.spinner('Uploading and processing...'):
+                    with upload:
+                        entries_files = {
+                            'uploaded_file': (
+                                upload.name,
+                                upload.read(),
+                                'text/csv',
+                            ),
+                        }
+                        response = self.api.upload_entries_from_csv(
+                            entries_files=entries_files,
+                        )
+                    if not self._handle_error(response=response):
+                        st.success('CSV uploaded successfully!')
 
     def _add_budget_entry(self) -> None:
         """Handle adding a budget entry."""

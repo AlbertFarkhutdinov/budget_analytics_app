@@ -1,4 +1,5 @@
 import logging
+from io import BytesIO
 
 from frontend.api.api_client import APIClient
 
@@ -47,13 +48,13 @@ class EntriesAPIClient(APIClient):
 
     def upload_entries_from_csv(
         self,
-        entries: list[dict[str, str | int | None]],
+        entries_files: dict[str, tuple[str, BytesIO, str]],
     ) -> dict[str, str]:
         """Handle uploading budget entries from CSV."""
         response = self.make_request(
             method='POST',
             endpoint='/entries/upload',
-            json_data=entries,
+            files=entries_files,
         )
         if response:
             return response

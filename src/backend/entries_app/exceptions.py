@@ -21,3 +21,13 @@ class ProcessingError(HTTPException):
             status_code=HTTPStatus.BAD_REQUEST,
             detail='Error processing entries.',
         )
+
+
+class NoFileUploaded(HTTPException):
+
+    def __init__(self) -> None:
+        """Initialize NoFileUploaded."""
+        super().__init__(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail='No file uploaded.',
+        )
