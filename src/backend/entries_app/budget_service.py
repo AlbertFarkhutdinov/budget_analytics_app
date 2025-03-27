@@ -1,9 +1,12 @@
+import io
+
+import pandas as pd
 import sqlalchemy as sql
 from fastapi import UploadFile
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
-from backend.entries_app.exceptions import NoFileUploaded
+from backend.entries_app.exceptions import NoFileUploaded, MissedColumnsError
 from backend.entries_app.models import BudgetEntry, BudgetEntrySchema
 
 
@@ -73,5 +76,25 @@ class BudgetService:
     ) -> dict[str, str]:
         if not uploaded_entries:
             raise NoFileUploaded
-        # TODO
+        contents = uploaded_entries.file.read()
+        df = pd.read_csv(
+            io.StringIO(contents.decode('utf-8')),
+            sep=';',
+        )
+        expected_columns = (
+            'date',
+            'shop',
+            'product',
+            'amount',
+            'category',
+            'person',
+            'currency',
+        )
+        missed_columns = []
+        for column in expected_columns:
+            if column not in df.columns:
+                missed_columns.append(column)
+        if missed_columns:
+            raise MissedColumnsError(missed_columns=missed_columns)
+
         return {'message': 'Entries uploaded successfully.'}

@@ -31,3 +31,13 @@ class NoFileUploaded(HTTPException):
             status_code=HTTPStatus.BAD_REQUEST,
             detail='No file uploaded.',
         )
+
+
+class MissedColumnsError(HTTPException):
+
+    def __init__(self, missed_columns: list[str]) -> None:
+        """Initialize MissedColumnsError."""
+        super().__init__(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f'Missed columns in CSV file: {missed_columns}',
+        )
