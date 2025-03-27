@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from matplotlib import pyplot as plt
+from plotly import express as px
 
 from frontend.api.reports_api_client import ReportsAPIClient
 
@@ -37,7 +37,6 @@ class ReportsPage:
                 st.table(df)
             plot_data = last_report.get('plot_data')
             if plot_data is not None:
-                fig, ax = plt.subplots()
-                plt.plot(plot_data['x'], plot_data['y'])
-                ax.set_title(report_name)
-                st.pyplot(fig)
+                fig = px.line(x=plot_data['x'], y=plot_data['y'])
+                fig.update_layout(title_text=report_name)
+                st.plotly_chart(fig)
