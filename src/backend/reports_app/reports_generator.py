@@ -1,3 +1,5 @@
+from enum import Enum
+
 import pandas as pd
 import sqlalchemy as sql
 
@@ -8,6 +10,20 @@ ReportType = dict[
     dict[str, list[float | str]],
 ]
 ReportsType = dict[str, ReportType]
+
+
+class TimeInterval(Enum):
+    month: str = 'month'
+    year: str = 'year'
+    total: str = 'total'
+
+
+class Column(Enum):
+    year: str = 'year'
+    month: str = 'month'
+    date: str = 'date'
+    category: str = 'category'
+    amount: str = 'amount'
 
 
 class ReportsGenerator:
@@ -21,62 +37,70 @@ class ReportsGenerator:
     def expenses_per_category(self) -> ReportsType:
         grouped_df = self._fetch_data(query=sql.select(BudgetEntry))
         reports = {}
-        for interval_name in ('month', 'year'):
-            reports[interval_name] = {
-                str(interval): (
-                    group
-                    .groupby('category')
-                    .sum(numeric_only=True)['amount']
-                    .round(2)
-                    .reset_index()
-                    .to_dict('list')
-                )
-                for interval, group in grouped_df.groupby(interval_name)
-            }
-        reports['total'] = {
-            'total': (
-                grouped_df
-                .groupby('category')
-                .sum(numeric_only=True)['amount']
-                .round(2)
-                .reset_index()
-                .to_dict('list')
-            ),
-        }
+        for field in TimeInterval:
+            if field.value == TimeInterval.total:
+                reports[field.value] = {
+                    field.value: (
+                        grouped_df
+                        .groupby(Column.category)
+                        .sum(numeric_only=True)[Column.amount]
+                        .round(2)
+                        .reset_index()
+                        .to_dict('list')
+                    ),
+                }
+            else:
+                reports[field.value] = {
+                    str(interval): (
+                        group
+                        .groupby(Column.category)
+                        .sum(numeric_only=True)[Column.amount]
+                        .round(2)
+                        .reset_index()
+                        .to_dict('list')
+                    )
+                    for interval, group in grouped_df.groupby(field.value)
+                }
         return reports
 
     def expenses_per_interval(self) -> ReportsType:
         grouped_df = self._fetch_data(query=sql.select(BudgetEntry))
         reports = {}
-        for category, group in grouped_df.groupby('category'):
-            report = {}
-            for interval_name in ('month', 'year'):
-                report[interval_name] = (
-                    group
-                    .groupby(interval_name)
-                    .sum(numeric_only=True)['amount']
-                    .round(2)
-                    .reset_index()
-                    .to_dict('list')
-                )
-            report['total'] = {
-                'total': ['total'],
-                'amount': [float(group['amount'].sum().round(2))],
-            }
-            reports[str(category)] = report
+        for category, group in grouped_df.groupby(Column.category):
+            for field in TimeInterval:
+                if field.value == TimeInterval.total:
+                    reports[str(category)][field.value] = {
+                        field.value: [field.value],
+                        Column.amount: [
+                            float(group[Column.amount].sum().round(2)),
+                        ],
+                    }
+                else:
+                    reports[str(category)][field.value] = (
+                        group
+                        .groupby(field.value)
+                        .sum(numeric_only=True)[Column.amount]
+                        .round(2)
+                        .reset_index()
+                        .to_dict('list')
+                    )
         return reports
 
     def _fetch_data(self, query: sql.Select) -> pd.DataFrame:
         """Fetch data from RDS."""
         with self.engine.connect() as connection:
-            return (
+            expenses = (
                 pd.read_sql(query, connection)
-                .query('amount > 0')
+                .query(f'{Column.amount} > 0')
+            )
+            columns = [col.name for col in Column if col.name != 'amount']
+            return (
+                expenses
                 .assign(
-                    year=lambda df: df['date'].dt.year.astype(str),
-                    month=lambda df: df['date'].dt.strftime('%Y-%m'),
+                    year=expenses[Column.date].dt.year.astype(str),
+                    month=expenses[Column.date].dt.strftime('%Y-%m'),
                 )
-                .groupby(['year', 'month', 'date', 'category'])
+                .groupby(columns)
                 .sum(numeric_only=True)
                 .reset_index()
             )

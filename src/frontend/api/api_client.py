@@ -49,12 +49,10 @@ class APIClient:
             )
         except requests.exceptions.RequestException as exc:
             logger.error('API request failed: %s', str(exc))  # noqa: TRY400
-            try:
-                return response.json()
-            except AttributeError:
-                return {'detail': 'Failed to connect to the server.'}
         try:
             return response.json()
+        except AttributeError:
+            return {'detail': 'Failed to connect to the server.'}
         except requests.exceptions.JSONDecodeError:
             return {'detail': 'Failed to decode response.'}
 

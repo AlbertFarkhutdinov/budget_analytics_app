@@ -14,32 +14,50 @@ class ReportsPage(BasePage):
     def run(self) -> None:
         """Run the Streamlit app."""
         st.title('Budget Reports')
-
         report_types = {
             'expenses_per_category': 'Expenses Per Category',
             'expenses_per_interval': 'Expenses Per Time Interval',
         }
         for report_type, report_name in report_types.items():
             st.subheader(report_name)
-            if st.button(f'Generate {report_name}'):
-                report_data = self.api.generate_report(report_type)
-                self._handle_response(response=report_data)
-                if 'detail' in report_data:
-                    st.error('Failed to generate report.')
-                else:
-                    st.success('Report generated successfully.')
+            self._generate_report(
+                report_name=report_name,
+                report_type=report_type,
+            )
+            self._load_report(
+                report_name=report_name,
+                report_type=report_type,
+            )
 
-            last_report = self.api.load_last_report(report_type)
-            if 'detail' in last_report:
-                st.info('No report found. Generate one first.')
-                continue
-            st.write('#### Last Generated Report')
-            if last_report is not None:
-                method = getattr(self, f'_plot_{report_type}', None)
-                if method is None:
-                    st.error(f'Report "{report_name}" is not supported.')
-                else:
-                    method(last_report)
+    def _generate_report(
+        self,
+        report_name: str,
+        report_type: str,
+    ) -> None:
+        if st.button(f'Generate {report_name}'):
+            report_data = self.api.generate_report(report_type)
+            self._handle_response(response=report_data)
+            if 'detail' in report_data:
+                st.error('Failed to generate report.')
+            else:
+                st.success('Report generated successfully.')
+
+    def _load_report(
+        self,
+        report_name: str,
+        report_type: str,
+    ) -> None:
+        last_report = self.api.load_last_report(report_type)
+        if 'detail' in last_report:
+            st.info('No report found. Generate one first.')
+            return
+        st.write('#### Last Generated Report')
+        if last_report is not None:
+            method = getattr(self, f'_plot_{report_type}', None)
+            if method is None:
+                st.error(f'Report "{report_name}" is not supported.')
+            else:
+                method(last_report)
 
     @classmethod
     def _plot_expenses_per_category(cls, reports: ReportsType) -> None:

@@ -5,11 +5,10 @@ import logging
 
 import boto3
 
-from backend.auth_app import exceptions
+from backend.auth_app import exceptions as auth_exc
 from backend.auth_app.settings import AuthSettings
 
 logger = logging.getLogger(__name__)
-ENCODING = 'utf-8'
 
 
 class CognitoClient:
@@ -21,17 +20,6 @@ class CognitoClient:
             region_name=self.settings.cognito_region,
         )
 
-    def compute_secret_hash(self, username: str) -> str:
-        if not self.settings.cognito_client_secret:
-            raise exceptions.MissingSecretError
-        message = username + str(self.settings.cognito_client_id)
-        dig = hmac.new(
-            key=self.settings.cognito_client_secret.encode(ENCODING),
-            msg=message.encode(ENCODING),
-            digestmod=hashlib.sha256,
-        ).digest()
-        return base64.b64encode(dig).decode(ENCODING)
-
     def register_user(
         self,
         username: str,
@@ -41,7 +29,7 @@ class CognitoClient:
         try:
             self.client.sign_up(
                 ClientId=self.settings.cognito_client_id,
-                SecretHash=self.compute_secret_hash(username),
+                SecretHash=self._compute_secret_hash(username),
                 Username=username,
                 Password=password,
                 UserAttributes=[
@@ -52,9 +40,9 @@ class CognitoClient:
                 ],
             )
         except self.client.exceptions.UsernameExistsException as exc:
-            raise exceptions.UserAlreadyExistsError from exc
+            raise auth_exc.UserAlreadyExistsError from exc
         except Exception as exc:
-            raise exceptions.InternalServerError(
+            raise auth_exc.InternalServerError(
                 detail='Registration failed.',
             ) from exc
         return {'message': 'User registered, confirm the email.'}
@@ -70,12 +58,12 @@ class CognitoClient:
                 ClientId=self.settings.cognito_client_id,
                 Username=username,
                 ConfirmationCode=confirmation_code,
-                SecretHash=self.compute_secret_hash(username),
+                SecretHash=self._compute_secret_hash(username),
             )
         except self.client.exceptions.CodeMismatchException as exc:
-            raise exceptions.InvalidConfirmationCodeError from exc
+            raise auth_exc.InvalidConfirmationCodeError from exc
         except Exception as exc:
-            raise exceptions.InternalServerError(
+            raise auth_exc.InternalServerError(
                 detail='Confirmation failed.',
             ) from exc
         return {'message': 'User confirmed. You can now log in.'}
@@ -86,6 +74,12 @@ class CognitoClient:
         password: str,
     ) -> dict[str, str]:
         logger.info('Received login request.')
+        cogn_ex = self.client.exceptions
+        exception_map = {
+            cogn_ex.UserNotFoundException: auth_exc.UserNotFoundError,
+            cogn_ex.NotAuthorizedException: auth_exc.IncorrectCredentialsError,
+            cogn_ex.UserNotConfirmedException: auth_exc.UserNotConfirmedError,
+        }
         try:
             response = self.client.initiate_auth(
                 ClientId=self.settings.cognito_client_id,
@@ -93,21 +87,32 @@ class CognitoClient:
                 AuthParameters={
                     'USERNAME': username,
                     'PASSWORD': password,
-                    'SECRET_HASH': self.compute_secret_hash(username),
+                    'SECRET_HASH': self._compute_secret_hash(username),
                 },
             )
-        except self.client.exceptions.UserNotFoundException as exc:
-            raise exceptions.UserNotFoundError from exc
-        except self.client.exceptions.NotAuthorizedException as exc:
-            raise exceptions.IncorrectCredentialsError from exc
-        except self.client.exceptions.UserNotConfirmedException as exc:
-            raise exceptions.UserNotConfirmedError from exc
+        except (
+            self.client.exceptions.UserNotFoundException,
+            self.client.exceptions.NotAuthorizedException,
+            self.client.exceptions.UserNotConfirmedException,
+        ) as exc:
+            raise exception_map[type(exc)] from exc
         except Exception as exc:
-            logger.exception('Login failed.')
-            raise exceptions.InternalServerError(
-                detail='Login failed.',
-            ) from exc
+            detail = 'Login failed.'
+            logger.exception(detail)
+            raise auth_exc.InternalServerError(detail=detail) from exc
         token = response['AuthenticationResult']['AccessToken']
         return {
             'access_token': token,
         }
+
+    def _compute_secret_hash(self, username: str) -> str:
+        if not self.settings.cognito_client_secret:
+            raise auth_exc.MissingSecretError
+        message = username + str(self.settings.cognito_client_id)
+        encoding = 'utf-8'
+        dig = hmac.new(
+            key=self.settings.cognito_client_secret.encode(encoding),
+            msg=message.encode(encoding),
+            digestmod=hashlib.sha256,
+        ).digest()
+        return base64.b64encode(dig).decode(encoding)

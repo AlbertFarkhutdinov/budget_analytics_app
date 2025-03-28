@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from backend.entries_app.exceptions import MissedColumnsError, NoFileUploaded
 from backend.entries_app.models import BudgetEntry, BudgetEntrySchema
 
+MSG_FIELD = 'message'
+
 
 class BudgetService:
 
@@ -27,7 +29,7 @@ class BudgetService:
             session.add(db_entry)
             session.commit()
             session.refresh(db_entry)
-            return {'message': 'Entry is added successfully.'}
+            return {MSG_FIELD: 'Entry is added successfully.'}
 
     def get_entries_info(self) -> dict[str, str | int]:
         with Session(self.engine) as session:
@@ -67,25 +69,12 @@ class BudgetService:
     ) -> dict[str, str]:
         with Session(self.engine) as session:
             for updated_entry in updated_entries:
-                stmt = (
-                    sql.select(BudgetEntry)
-                    .where(BudgetEntry.id.in_([updated_entry.id]))
-                    .order_by(BudgetEntry.id)
+                self._update_entry(
+                    updated_entry=updated_entry,
+                    session=session,
                 )
-                try:
-                    entry = session.scalars(stmt).one()
-                except NoResultFound:
-                    dumped_model = updated_entry.model_dump(exclude_unset=True)
-                    entry_id = dumped_model.get('id')
-                    if entry_id in {-1, None}:
-                        dumped_model.pop('id')
-                    entry = BudgetEntry(**dumped_model)
-                    session.add(entry)
-                else:
-                    for key, field in updated_entry.model_dump().items():
-                        setattr(entry, key, field)
             session.commit()
-            return {'message': 'Entries are saved successfully.'}
+            return {MSG_FIELD: 'Entries are saved successfully.'}
 
     def upload_entries(
         self,
@@ -93,29 +82,7 @@ class BudgetService:
     ) -> dict[str, str]:
         if not uploaded_entries:
             raise NoFileUploaded
-        contents = uploaded_entries.file.read()
-        df = pd.read_csv(
-            io.StringIO(contents.decode('utf-8')),
-            sep=';',
-        )
-        expected_columns = (
-            'date',
-            'shop',
-            'product',
-            'amount',
-            'category',
-            'person',
-            'currency',
-        )
-        missed_columns = [
-            column
-            for column in expected_columns
-            if column not in df.columns
-        ]
-        if missed_columns:
-            raise MissedColumnsError(missed_columns=missed_columns)
-
-        df['date'] = pd.to_datetime(df['date'])
+        df = self._process_upload_entries(uploaded_entries=uploaded_entries)
         with Session(self.engine) as session:
             for record in df.to_dict(orient='records'):
                 entry_schema = BudgetEntrySchema(**record)
@@ -126,11 +93,56 @@ class BudgetService:
             session.commit()
             session.refresh(db_entry)
             return {
-                'message': f'{df.shape[0]} entries is uploaded successfully.',
+                MSG_FIELD: f'{df.shape[0]} entries is uploaded successfully.',
             }
 
     def delete_all_entries(self) -> dict[str, str]:
         with Session(self.engine) as session:
             session.query(BudgetEntry).delete()
             session.commit()
-            return {'message': 'All entries are deleted successfully.'}
+            return {MSG_FIELD: 'All entries are deleted successfully.'}
+
+    @classmethod
+    def _update_entry(
+        cls,
+        updated_entry: BudgetEntrySchema,
+        session: Session,
+    ) -> None:
+        stmt = (
+            sql.select(BudgetEntry)
+            .where(BudgetEntry.id.in_([updated_entry.id]))
+            .order_by(BudgetEntry.id)
+        )
+        try:
+            entry = session.scalars(stmt).one()
+        except NoResultFound:
+            dumped_model = updated_entry.model_dump(exclude_unset=True)
+            if dumped_model.get('id') in {-1, None}:
+                dumped_model.pop('id')
+            entry = BudgetEntry(**dumped_model)
+            session.add(entry)
+        else:
+            for entry_field in updated_entry.model_dump().items():
+                setattr(entry, *entry_field)
+
+    @classmethod
+    def _process_upload_entries(
+        cls,
+        uploaded_entries: UploadFile,
+    ) -> pd.DataFrame:
+        df = pd.read_csv(
+            io.StringIO(uploaded_entries.file.read().decode('utf-8')),
+            sep=';',
+        )
+        expected_fields = {**BudgetEntrySchema.model_fields}
+        expected_fields.pop('id')
+        missed_columns = [
+            column
+            for column in expected_fields
+            if column not in df.columns
+        ]
+        if missed_columns:
+            raise MissedColumnsError(missed_columns=missed_columns)
+
+        df['date'] = pd.to_datetime(df['date'])
+        return df
