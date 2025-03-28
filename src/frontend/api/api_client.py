@@ -12,6 +12,7 @@ ReportType = dict[
     str,
     dict[str, list[float | str]],
 ]
+ReportsType = dict[str, ReportType]
 
 
 class APIClient:
@@ -27,7 +28,7 @@ class APIClient:
         method: str = 'POST',
         json_data: EntryType | list[EntryType] | None = None,
         files: dict[str, tuple[str, BytesIO, str]] | None = None,
-    ) -> dict[str, str] | ReportType:
+    ) -> dict[str, str] | ReportsType:
         """Unified method for handling API requests."""
         url = f'{API_BASE_URL}{endpoint}'
 
@@ -52,7 +53,10 @@ class APIClient:
                 return response.json()
             except AttributeError:
                 return {'detail': 'Failed to connect to the server.'}
-        return response.json()
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError:
+            return {'detail': 'Failed to decode response.'}
 
     def _get_headers(self) -> dict[str, str]:
         """Return authorization headers if the user is logged in."""

@@ -1,6 +1,6 @@
-import pandas as pd
+# import pandas as pd
 import streamlit as st
-from plotly import express as px
+# from plotly import express as px
 
 from frontend.api.reports_api_client import ReportsAPIClient
 
@@ -15,7 +15,8 @@ class ReportsPage:
         st.title('Budget Reports')
 
         report_types = {
-            'expenses_per_day': 'Expenses Per Day',
+            'expenses_per_category': 'Expenses Per Category',
+            'expenses_per_interval': 'Expenses Per Time Interval',
         }
         for report_key, report_name in report_types.items():
             st.subheader(report_name)
@@ -30,13 +31,10 @@ class ReportsPage:
             if 'detail' in last_report:
                 st.info('No report found. Generate one first.')
                 continue
-            st.write('### Last Generated Report')
-            table_data = last_report.get('table_data')
-            if table_data is not None:
-                df = pd.DataFrame(table_data)
-                st.table(df)
-            plot_data = last_report.get('plot_data')
-            if plot_data is not None:
-                fig = px.line(x=plot_data['x'], y=plot_data['y'])
-                fig.update_layout(title_text=report_name)
-                st.plotly_chart(fig)
+            st.write('#### Last Generated Report')
+            if last_report is not None:
+                print(last_report)
+                # TODO add plots for reports
+                # fig = px.line(x=last_report['x'], y=last_report['y'])
+                # fig.update_layout(title_text=report_name)
+                # st.plotly_chart(fig)

@@ -1,7 +1,7 @@
 import sqlalchemy as sql
 
 from backend.reports_app.exceptions import InvalidReportType, ReportNotFound
-from backend.reports_app.reports_generator import ReportsGenerator, ReportType
+from backend.reports_app.reports_generator import ReportsGenerator, ReportsType
 from backend.reports_app.s3client import S3Client
 
 
@@ -14,7 +14,7 @@ class ReportsService:
         self.reports_generator = ReportsGenerator(engine)
         self.s3client = S3Client()
 
-    def generate_report(self, report_name: str) -> ReportType:
+    def generate_report(self, report_name: str) -> ReportsType:
         """Generate a report."""
         report_method = getattr(
             self.reports_generator,
@@ -31,7 +31,7 @@ class ReportsService:
         )
         return report
 
-    def get_latest_report(self, report_name: str) -> ReportType:
+    def get_latest_report(self, report_name: str) -> ReportsType:
         """Fetch the latest report."""
         report = self.s3client.load_json(
             remote_path=f'reports/{report_name}.json',
