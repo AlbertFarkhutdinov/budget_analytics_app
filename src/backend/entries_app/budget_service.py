@@ -29,6 +29,23 @@ class BudgetService:
             session.refresh(db_entry)
             return {'message': 'Entry is added successfully.'}
 
+    def get_entries_info(self) -> dict[str, str | int]:
+        with Session(self.engine) as session:
+            summary = session.query(
+                sql.func.count(BudgetEntry.id),
+                sql.func.min(BudgetEntry.date),
+                sql.func.max(BudgetEntry.date),
+                sql.func.count(sql.func.distinct(BudgetEntry.category)),
+                sql.func.count(sql.func.distinct(BudgetEntry.person)),
+            ).first()
+        return {
+            'entries_number': summary[0],
+            'min_date': summary[1].isoformat() if summary[1] else None,
+            'max_date': summary[2].isoformat() if summary[2] else None,
+            'categories_number': summary[3],
+            'persons_number': summary[4],
+        }
+
     def read_entries(
         self,
         skip: int = 0,

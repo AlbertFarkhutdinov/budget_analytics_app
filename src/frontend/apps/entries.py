@@ -10,10 +10,14 @@ class EntriesPage:
 
     def __init__(self) -> None:
         self.api = EntriesAPIClient()
+        self.info = {}
 
     def run(self) -> None:
         """Run the Streamlit app."""
         st.title('Transactions History')
+        self.info = self.api.get_entries_info()
+        entries_number = self.info.get('entries_number', 0)
+        st.write(f'{entries_number} entries in the database.')
         self._view_budget_entries()
         self._add_budget_entry()
         self._upload_csv()

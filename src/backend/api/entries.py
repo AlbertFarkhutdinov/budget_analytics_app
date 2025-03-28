@@ -12,7 +12,7 @@ Base.metadata.create_all(bind=engine)
 entries_router = APIRouter()
 
 
-@entries_router.post(path='/')
+@entries_router.post(path='/create')
 def create_entry(entry: BudgetEntrySchema) -> dict[str, str]:
     return BudgetService(engine).create_entry(entry=entry)
 
@@ -20,6 +20,11 @@ def create_entry(entry: BudgetEntrySchema) -> dict[str, str]:
 @entries_router.get(path='/', response_model=list[BudgetEntrySchema])
 def read_entries() -> list[BudgetEntry]:
     return BudgetService(engine).read_entries()
+
+
+@entries_router.get(path='/info')
+def get_entries_info() -> dict[str, str | int]:
+    return BudgetService(engine).get_entries_info()
 
 
 @entries_router.post(path='/update')

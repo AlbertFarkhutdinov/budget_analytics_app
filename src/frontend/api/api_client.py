@@ -28,7 +28,7 @@ class APIClient:
         method: str = 'POST',
         json_data: EntryType | list[EntryType] | None = None,
         files: dict[str, tuple[str, BytesIO, str]] | None = None,
-    ) -> dict[str, str] | ReportsType:
+    ) -> dict[str, str | int] | ReportsType:
         """Unified method for handling API requests."""
         url = f'{API_BASE_URL}{endpoint}'
 

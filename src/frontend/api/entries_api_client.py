@@ -18,13 +18,22 @@ class EntriesAPIClient(APIClient):
             return entries
         return {}
 
+    def get_entries_info(self) -> dict[str, str | int]:
+        entries = self.make_request(
+            method='GET',
+            endpoint='/entries/info',
+        )
+        if entries:
+            return entries
+        return {}
+
     def add_budget_entry(
         self,
         entry: dict[str, str | int | None],
     ) -> dict[str, str]:
         """Handle adding a budget entry."""
         response = self.make_request(
-            endpoint='/entries/',
+            endpoint='/entries/create',
             json_data=entry,
         )
         if response:
