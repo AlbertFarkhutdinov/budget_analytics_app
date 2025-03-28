@@ -3,9 +3,10 @@ from plotly import express as px
 
 from frontend.api.api_client import ReportsType
 from frontend.api.reports_api_client import ReportsAPIClient
+from frontend.apps.base_page import BasePage
 
 
-class ReportsPage:
+class ReportsPage(BasePage):
 
     def __init__(self) -> None:
         self.api = ReportsAPIClient()
@@ -22,10 +23,11 @@ class ReportsPage:
             st.subheader(report_name)
             if st.button(f'Generate {report_name}'):
                 report_data = self.api.generate_report(report_type)
+                self._handle_response(response=report_data)
                 if 'detail' in report_data:
                     st.error('Failed to generate report.')
                 else:
-                    st.success('Report generated successfully!')
+                    st.success('Report generated successfully.')
 
             last_report = self.api.load_last_report(report_type)
             if 'detail' in last_report:

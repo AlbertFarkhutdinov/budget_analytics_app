@@ -4,9 +4,10 @@ import pandas as pd
 import streamlit as st
 
 from frontend.api.entries_api_client import EntriesAPIClient
+from frontend.apps.base_page import BasePage
 
 
-class EntriesPage:
+class EntriesPage(BasePage):
 
     def __init__(self) -> None:
         self.api = EntriesAPIClient()
@@ -47,8 +48,7 @@ class EntriesPage:
                         entries_df.to_json(orient='records'),
                     ),
                 )
-                self._handle_response(response=response)
-                if 'message' in response:
+                if self._handle_response(response=response) == 1:
                     st.rerun()
 
     def _upload_csv(self) -> None:
@@ -69,8 +69,7 @@ class EntriesPage:
                     response = self.api.upload_entries_from_csv(
                         entries_files=entries_files,
                     )
-                self._handle_response(response=response)
-                if 'message' in response:
+                if self._handle_response(response=response) == 1:
                     st.rerun()
 
     def _add_budget_entry(self) -> None:
@@ -103,25 +102,12 @@ class EntriesPage:
                         'currency': currency,
                     }
                     response = self.api.add_budget_entry(entry=entry)
-                    self._handle_response(response=response)
-                    if 'message' in response:
+                    if self._handle_response(response=response) == 1:
                         st.session_state.show_form = False
                         st.rerun()
 
     def _clean_data(self) -> None:
         if st.button('Delete all entries'):
             response = self.api.delete_all_entries()
-            self._handle_response(response=response)
-            st.rerun()
-
-    @classmethod
-    def _handle_response(cls, response: dict[str, str]) -> str:
-        message = response.get('message', '')
-        detail = response.get('detail', '')
-        if detail:
-            st.error(detail)
-            return detail
-        if message:
-            st.success(message)
-            return message
-        return ''
+            if self._handle_response(response=response) == 1:
+                st.rerun()

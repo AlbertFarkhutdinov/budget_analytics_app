@@ -1,10 +1,11 @@
 import streamlit as st
 
 from frontend.api.auth_api_client import AuthAPIClient
+from frontend.apps.base_page import BasePage
 from frontend.apps.page_state import PageState
 
 
-class AuthPage:
+class AuthPage(BasePage):
     """Handles UI and authentication logic."""
 
     def __init__(self) -> None:
@@ -16,7 +17,7 @@ class AuthPage:
         st.title('Authentication')
 
         if st.session_state.token:
-            st.success('You are already logged in!')
+            st.success('You are already logged in.')
             if st.button('Logout'):
                 self._logout()
             return
@@ -47,9 +48,8 @@ class AuthPage:
                 st.error('Username and password cannot be empty.')
                 return
             response = self.api.register_user(username, password)
-            if self._handle_error(response=response):
+            if self._handle_response(response=response) == -1:
                 return
-            st.success('User registered, confirm the email')
 
         confirmation_code = st.text_input(
             'Enter confirmation code',
@@ -63,8 +63,7 @@ class AuthPage:
                 username=username,
                 confirmation_code=confirmation_code,
             )
-            if not self._handle_error(response=confirm_response):
-                st.success('User confirmed. You can now log in.')
+            self._handle_response(response=confirm_response)
 
     def _login(self, username: str, password: str) -> None:
         """Handle user login."""
@@ -73,13 +72,13 @@ class AuthPage:
                 st.error('Username and password cannot be empty.')
                 return
             response = self.api.login_user(username, password)
-            if self._handle_error(response=response):
+            if self._handle_response(response=response) == -1:
                 return
             token = response.get('access_token', '')
             if token:
                 st.session_state.token = token
                 st.session_state.page = PageState.entries.value
-                st.success('Logged in successfully!')
+                st.success('Logged in successfully.')
                 st.rerun()
 
     @classmethod
@@ -87,12 +86,4 @@ class AuthPage:
         """Handle user logout."""
         st.session_state.token = None
         st.session_state.username = ''
-        st.success('Logged out successfully!')
-
-    @classmethod
-    def _handle_error(cls, response: dict[str, str]) -> str:
-        detail = response.get('detail', '')
-        if detail:
-            st.error(detail)
-            return detail
-        return ''
+        st.success('Logged out successfully.')

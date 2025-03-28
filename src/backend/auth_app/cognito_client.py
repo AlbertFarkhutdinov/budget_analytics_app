@@ -78,7 +78,7 @@ class CognitoClient:
             raise exceptions.InternalServerError(
                 detail='Confirmation failed.',
             ) from exc
-        return {'message': 'User confirmed'}
+        return {'message': 'User confirmed. You can now log in.'}
 
     def login_user(
         self,
