@@ -1,7 +1,7 @@
-# import pandas as pd
 import streamlit as st
-# from plotly import express as px
+from plotly import express as px
 
+from frontend.api.api_client import ReportsType
 from frontend.api.reports_api_client import ReportsAPIClient
 
 
@@ -18,23 +18,79 @@ class ReportsPage:
             'expenses_per_category': 'Expenses Per Category',
             'expenses_per_interval': 'Expenses Per Time Interval',
         }
-        for report_key, report_name in report_types.items():
+        for report_type, report_name in report_types.items():
             st.subheader(report_name)
             if st.button(f'Generate {report_name}'):
-                report_data = self.api.generate_report(report_key)
+                report_data = self.api.generate_report(report_type)
                 if 'detail' in report_data:
                     st.error('Failed to generate report.')
                 else:
                     st.success('Report generated successfully!')
 
-            last_report = self.api.load_last_report(report_key)
+            last_report = self.api.load_last_report(report_type)
             if 'detail' in last_report:
                 st.info('No report found. Generate one first.')
                 continue
             st.write('#### Last Generated Report')
             if last_report is not None:
-                print(last_report)
-                # TODO add plots for reports
-                # fig = px.line(x=last_report['x'], y=last_report['y'])
-                # fig.update_layout(title_text=report_name)
-                # st.plotly_chart(fig)
+                method = getattr(self, f'_plot_{report_type}', None)
+                if method is None:
+                    st.error(f'Report "{report_name}" is not supported.')
+                else:
+                    method(last_report)
+
+    @classmethod
+    def _plot_expenses_per_category(cls, reports: ReportsType) -> None:
+        time_type = st.radio(
+            'Select time interval type:',
+            list(reports.keys()),
+            key='expenses_per_category__time_type',
+        )
+        time_interval = st.selectbox(
+            'Select time interval:',
+            list(reports[time_type].keys()),
+        )
+        plot_type = st.radio(
+            'Select plot type:',
+            ['Bar Chart', 'Pie Chart'],
+            key='expenses_per_category__plot_type',
+        )
+        categories = reports[time_type][time_interval]['category']
+        amounts = reports[time_type][time_interval]['amount']
+
+        if plot_type == 'Bar Chart':
+            fig = px.bar(
+                x=categories,
+                y=amounts,
+                labels={'x': 'Category', 'y': 'Amount'},
+                title=f'Expenses for {time_interval}',
+            )
+        else:
+            fig = px.pie(
+                names=categories,
+                values=amounts,
+                title=f'Expenses for {time_interval}',
+            )
+        st.plotly_chart(fig)
+
+    @classmethod
+    def _plot_expenses_per_interval(cls, reports: ReportsType) -> None:
+        category = st.selectbox(
+            'Select category:',
+            list(reports.keys()),
+        )
+        time_type = st.radio(
+            'Select time interval type:',
+            list(reports[category].keys()),
+            key='expenses_per_interval__time_type',
+        )
+        time_intervals = reports[category][time_type][time_type]
+        amounts = reports[category][time_type]['amount']
+
+        fig = px.bar(
+            x=time_intervals,
+            y=amounts,
+            labels={'x': 'Time Interval', 'y': 'Amount'},
+            title=f'Expenses for {category}',
+        )
+        st.plotly_chart(fig)

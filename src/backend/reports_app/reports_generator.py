@@ -60,6 +60,7 @@ class ReportsGenerator:
                     .to_dict('list')
                 )
             report['total'] = {
+                'total': ['total'],
                 'amount': [float(group['amount'].sum().round(2))],
             }
             reports[str(category)] = report
@@ -72,7 +73,7 @@ class ReportsGenerator:
                 pd.read_sql(query, connection)
                 .query('amount > 0')
                 .assign(
-                    year=lambda df: df['date'].dt.year,
+                    year=lambda df: df['date'].dt.year.astype(str),
                     month=lambda df: df['date'].dt.strftime('%Y-%m'),
                 )
                 .groupby(['year', 'month', 'date', 'category'])
