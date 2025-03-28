@@ -65,5 +65,8 @@ class MainApp:
 if __name__ == '__main__':
     config_logging()
     app = MainApp()
-    app.run()
-    # app.run_after_login() # for tests
+    is_with_auth = False
+    if is_with_auth:
+        app.run()
+    else:
+        app.run_after_login()  # for tests

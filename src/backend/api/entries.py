@@ -13,9 +13,7 @@ entries_router = APIRouter()
 
 
 @entries_router.post(path='/')
-def create_entry(
-    entry: BudgetEntrySchema,
-) -> dict[str, str]:
+def create_entry(entry: BudgetEntrySchema) -> dict[str, str]:
     return BudgetService(engine).create_entry(entry=entry)
 
 
@@ -25,14 +23,15 @@ def read_entries() -> list[BudgetEntry]:
 
 
 @entries_router.post(path='/update')
-def update_entries(
-    updated_entries: list[BudgetEntrySchema],
-) -> dict[str, str]:
+def update_entries(updated_entries: list[BudgetEntrySchema]) -> dict[str, str]:
     return BudgetService(engine).update_entries(updated_entries)
 
 
-@entries_router.post(path='/upload', response_model=dict)
-def upload_entries(
-    uploaded_file: UploadFile,
-) -> dict[str, str]:
+@entries_router.post(path='/upload')
+def upload_entries(uploaded_file: UploadFile) -> dict[str, str]:
     return BudgetService(engine).upload_entries(uploaded_file)
+
+
+@entries_router.post(path='/clean')
+def delete_all_entries() -> dict[str, str]:
+    return BudgetService(engine).delete_all_entries()

@@ -27,7 +27,7 @@ class BudgetService:
             session.add(db_entry)
             session.commit()
             session.refresh(db_entry)
-            return {'message': 'Entries processed successfully.'}
+            return {'message': 'Entry is added successfully.'}
 
     def read_entries(
         self,
@@ -68,7 +68,7 @@ class BudgetService:
                     for key, field in updated_entry.model_dump().items():
                         setattr(entry, key, field)
             session.commit()
-            return {'message': 'Entries processed successfully.'}
+            return {'message': 'Entries are saved successfully.'}
 
     def upload_entries(
         self,
@@ -108,4 +108,12 @@ class BudgetService:
                 session.add(db_entry)
             session.commit()
             session.refresh(db_entry)
-            return {'message': f'{df.shape[0]} entries uploaded successfully.'}
+            return {
+                'message': f'{df.shape[0]} entries is uploaded successfully.',
+            }
+
+    def delete_all_entries(self) -> dict[str, str]:
+        with Session(self.engine) as session:
+            session.query(BudgetEntry).delete()
+            session.commit()
+            return {'message': 'All entries are deleted successfully.'}

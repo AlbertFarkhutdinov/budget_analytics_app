@@ -16,6 +16,7 @@ class EntriesPage:
         st.title('Transactions History')
         self._view_budget_entries()
         self._add_budget_entry()
+        self._upload_csv()
 
     def _view_budget_entries(self) -> None:
         """Handle viewing budget entries."""
@@ -23,48 +24,50 @@ class EntriesPage:
         if entries:
             entries_table = st.data_editor(
                 entries,
-                # column_config={'id': None},
+                column_config={'id': None},
                 num_rows='dynamic',
             )
-            if st.button('Save Changes'):
-                entries_df = pd.DataFrame(entries_table)
-                for column in entries_df.columns:
-                    if column != 'id' and entries_df[column].isna().sum():
-                        st.error(f'Fill "{column}" values')
-                        break
-                else:
-                    response = self.api.save_changed_entries(
-                        entries=json.loads(
-                            entries_df.to_json(orient='records'),
-                        ),
-                    )
-                    if not self._handle_error(response=response):
-                        st.success('Entries are saved successfully.')
+            self._save_changes(entries=entries_table)
+            self._clean_data()
 
-            upload = st.file_uploader(
-                'Upload CSV (sep: ";")',
-                type=['csv'],
-            )
-            if upload:
-                with st.spinner('Uploading and processing...'):
-                    with upload:
-                        entries_files = {
-                            'uploaded_file': (
-                                upload.name,
-                                upload.read(),
-                                'text/csv',
-                            ),
-                        }
-                        response = self.api.upload_entries_from_csv(
-                            entries_files=entries_files,
-                        )
-                    if not self._handle_error(response=response):
-                        st.success(
-                            response.get(
-                                'message',
-                                'CSV uploaded successfully!',
-                            ),
-                        )
+    def _save_changes(self, entries: pd.DataFrame) -> None:
+        if st.button('Save Changes'):
+            entries_df = pd.DataFrame(entries)
+            for column in entries_df.columns:
+                if column != 'id' and entries_df[column].isna().sum():
+                    st.error(f'Fill "{column}" values')
+                    break
+            else:
+                response = self.api.save_changed_entries(
+                    entries=json.loads(
+                        entries_df.to_json(orient='records'),
+                    ),
+                )
+                self._handle_response(response=response)
+                if 'message' in response:
+                    st.rerun()
+
+    def _upload_csv(self) -> None:
+        upload = st.file_uploader(
+            'Upload CSV (sep: ";")',
+            type=['csv'],
+        )
+        if upload:
+            with st.spinner('Uploading and processing...'):
+                with upload:
+                    entries_files = {
+                        'uploaded_file': (
+                            upload.name,
+                            upload.read(),
+                            'text/csv',
+                        ),
+                    }
+                    response = self.api.upload_entries_from_csv(
+                        entries_files=entries_files,
+                    )
+                self._handle_response(response=response)
+                if 'message' in response:
+                    st.rerun()
 
     def _add_budget_entry(self) -> None:
         """Handle adding a budget entry."""
@@ -96,15 +99,25 @@ class EntriesPage:
                         'currency': currency,
                     }
                     response = self.api.add_budget_entry(entry=entry)
-                    if response:
-                        st.success('Entry added successfully')
+                    self._handle_response(response=response)
+                    if 'message' in response:
                         st.session_state.show_form = False
                         st.rerun()
 
+    def _clean_data(self) -> None:
+        if st.button('Delete all entries'):
+            response = self.api.delete_all_entries()
+            self._handle_response(response=response)
+            st.rerun()
+
     @classmethod
-    def _handle_error(cls, response: dict[str, str]) -> str:
+    def _handle_response(cls, response: dict[str, str]) -> str:
+        message = response.get('message', '')
         detail = response.get('detail', '')
         if detail:
             st.error(detail)
             return detail
+        if message:
+            st.success(message)
+            return message
         return ''

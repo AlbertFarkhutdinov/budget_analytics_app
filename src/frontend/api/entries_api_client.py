@@ -24,7 +24,6 @@ class EntriesAPIClient(APIClient):
     ) -> dict[str, str]:
         """Handle adding a budget entry."""
         response = self.make_request(
-            method='POST',
             endpoint='/entries/',
             json_data=entry,
         )
@@ -38,7 +37,6 @@ class EntriesAPIClient(APIClient):
     ) -> dict[str, str]:
         """Handle saving changes budget entries."""
         response = self.make_request(
-            method='POST',
             endpoint='/entries/update',
             json_data=entries,
         )
@@ -52,9 +50,16 @@ class EntriesAPIClient(APIClient):
     ) -> dict[str, str]:
         """Handle uploading budget entries from CSV."""
         response = self.make_request(
-            method='POST',
             endpoint='/entries/upload',
             files=entries_files,
+        )
+        if response:
+            return response
+        return {}
+
+    def delete_all_entries(self) -> dict[str, str]:
+        response = self.make_request(
+            endpoint='/entries/clean',
         )
         if response:
             return response
