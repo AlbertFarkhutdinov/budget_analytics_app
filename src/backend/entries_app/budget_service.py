@@ -6,7 +6,7 @@ from fastapi import UploadFile
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
-from backend.entries_app.exceptions import NoFileUploaded, MissedColumnsError
+from backend.entries_app.exceptions import MissedColumnsError, NoFileUploaded
 from backend.entries_app.models import BudgetEntry, BudgetEntrySchema
 
 
@@ -90,11 +90,22 @@ class BudgetService:
             'person',
             'currency',
         )
-        missed_columns = []
-        for column in expected_columns:
-            if column not in df.columns:
-                missed_columns.append(column)
+        missed_columns = [
+            column
+            for column in expected_columns
+            if column not in df.columns
+        ]
         if missed_columns:
             raise MissedColumnsError(missed_columns=missed_columns)
 
-        return {'message': 'Entries uploaded successfully.'}
+        df['date'] = pd.to_datetime(df['date'])
+        with Session(self.engine) as session:
+            for record in df.to_dict(orient='records'):
+                entry_schema = BudgetEntrySchema(**record)
+                db_entry = BudgetEntry(
+                    **entry_schema.model_dump(exclude_unset=True),
+                )
+                session.add(db_entry)
+            session.commit()
+            session.refresh(db_entry)
+            return {'message': f'{df.shape[0]} entries uploaded successfully.'}

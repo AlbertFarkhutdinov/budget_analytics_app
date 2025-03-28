@@ -59,7 +59,12 @@ class EntriesPage:
                             entries_files=entries_files,
                         )
                     if not self._handle_error(response=response):
-                        st.success('CSV uploaded successfully!')
+                        st.success(
+                            response.get(
+                                'message',
+                                'CSV uploaded successfully!',
+                            ),
+                        )
 
     def _add_budget_entry(self) -> None:
         """Handle adding a budget entry."""

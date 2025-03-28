@@ -17,7 +17,7 @@ def start_backend() -> None:
         app='backend.api.run_backend:app',
         host='127.0.0.1',
         port=port,
-        reload=True,
+        # reload=True,
     )
 
 
