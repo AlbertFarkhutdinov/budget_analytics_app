@@ -1,3 +1,10 @@
+"""
+The module that provides the Streamlit page for managing budget reports.
+
+It contains the `ReportsPage` class, which handles the user interface
+and logic for generating and displaying budget reports.
+
+"""
 import streamlit as st
 from plotly import express as px
 
@@ -7,12 +14,35 @@ from frontend.apps.base_page import BasePage
 
 
 class ReportsPage(BasePage):
+    """
+    A class to handle the UI and logic for generating and displaying reports.
+
+    Attributes
+    ----------
+    api : ReportsAPIClient
+        API client for budget reports.
+
+    Methods
+    -------
+    run() -> None
+        Run the budget reports page UI.
+
+    """
 
     def __init__(self) -> None:
+        """Initialize the `ReportsPage` instance."""
         self.api = ReportsAPIClient()
 
     def run(self) -> None:
-        """Run the Streamlit app."""
+        """
+        Run the budget reports page UI.
+
+        This method allows the user to generate and view reports
+        for the following types of budget data:
+         - Expenses Per Category;
+         - Expenses Per Time Interval.
+
+        """
         st.title('Budget Reports')
         report_types = {
             'expenses_per_category': 'Expenses Per Category',
@@ -34,9 +64,23 @@ class ReportsPage(BasePage):
         report_name: str,
         report_type: str,
     ) -> None:
+        """
+        Generate a report based on the provided report name and type.
+
+        This method is triggered when the "Generate Report" button is clicked.
+        It fetches the report data and displays a success or error message.
+
+        Parameters
+        ----------
+        report_name : str
+            The name of the report that is displayed on the button.
+        report_type : str
+            The type of the report that is sent in a generation request.
+
+        """
         if st.button(f'Generate {report_name}'):
             report_data = self.api.generate_report(report_type)
-            self._handle_response(response=report_data)
+            self.handle_response(response=report_data)
             if 'detail' in report_data:
                 st.error('Failed to generate report.')
             else:
@@ -47,6 +91,20 @@ class ReportsPage(BasePage):
         report_name: str,
         report_type: str,
     ) -> None:
+        """
+        Load and display the last generated report for the specified type.
+
+        If no report is found, the user is prompted to generate a new one.
+        Otherwise, the last report is displayed with appropriate plotting.
+
+        Parameters
+        ----------
+        report_name : str
+            The name of the report that is displayed on the button.
+        report_type : str
+            The type of the report that is sent in a generation request.
+
+        """
         last_report = self.api.load_last_report(report_type)
         if 'detail' in last_report:
             st.info('No report found. Generate one first.')
@@ -61,6 +119,19 @@ class ReportsPage(BasePage):
 
     @classmethod
     def _plot_expenses_per_category(cls, reports: ReportsType) -> None:
+        """
+        Plot a report of expenses per category.
+
+        This method provides interactive options
+        for selecting a time interval and the plot type (bar or pie chart),
+        then generates the corresponding plot.
+
+        Parameters
+        ----------
+        reports : ReportsType
+            The report data containing categorized expenses.
+
+        """
         time_type = st.radio(
             'Select time interval type:',
             list(reports.keys()),
@@ -95,6 +166,18 @@ class ReportsPage(BasePage):
 
     @classmethod
     def _plot_expenses_per_interval(cls, reports: ReportsType) -> None:
+        """
+        Plot a report of expenses per time interval for a selected category.
+
+        This method allows the user to select a category and time interval,
+        then generates a bar chart displaying the corresponding expenses.
+
+        Parameters
+        ----------
+        reports : ReportsType
+            The report data containing categorized expenses.
+
+        """
         category = st.selectbox(
             'Select category:',
             list(reports.keys()),
