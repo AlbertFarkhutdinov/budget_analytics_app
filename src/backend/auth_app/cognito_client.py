@@ -1,3 +1,12 @@
+"""
+Module for handling authentication with AWS Cognito.
+
+This module provides a `CognitoClient` class
+that interacts with AWS Cognito for user registration,
+confirmation, and login functionality.
+
+"""
+
 import base64
 import hashlib
 import hmac
@@ -12,8 +21,24 @@ logger = logging.getLogger(__name__)
 
 
 class CognitoClient:
+    """
+    Client for interacting with AWS Cognito.
+
+    This class provides methods to register, confirm,
+    and authenticate users with AWS Cognito.
+
+    """
 
     def __init__(self, settings: AuthSettings) -> None:
+        """
+        Initialize the CognitoClient.
+
+        Parameters
+        ----------
+        settings : AuthSettings
+            Configuration settings for Cognito authentication.
+
+        """
         self.settings = settings
         self.client = boto3.client(
             'cognito-idp',
@@ -25,6 +50,29 @@ class CognitoClient:
         username: str,
         password: str,
     ) -> dict[str, str]:
+        """
+        Register a new user in Cognito.
+
+        Parameters
+        ----------
+        username : str
+            The email address of the user.
+        password : str
+            The password for the user account.
+
+        Returns
+        -------
+        dict
+            A message indicating that the user needs to confirm their email.
+
+        Raises
+        ------
+        UserAlreadyExistsError
+            If the user already exists.
+        InternalServerError
+            If registration fails due to an unexpected error.
+
+        """
         logger.info('Received register request.')
         try:
             self.client.sign_up(
@@ -52,6 +100,29 @@ class CognitoClient:
         username: str,
         confirmation_code: str,
     ) -> dict[str, str]:
+        """
+        Confirm a user's email address.
+
+        Parameters
+        ----------
+        username : str
+            The email address of the user.
+        confirmation_code : str
+            The confirmation code received via email.
+
+        Returns
+        -------
+        dict
+            A message indicating successful confirmation.
+
+        Raises
+        ------
+        InvalidConfirmationCodeError
+            If the provided confirmation code is invalid.
+        InternalServerError
+            If confirmation fails due to an unexpected error.
+
+        """
         logger.info('Received confirmation request.')
         try:
             self.client.confirm_sign_up(
@@ -73,6 +144,33 @@ class CognitoClient:
         username: str,
         password: str,
     ) -> dict[str, str]:
+        """
+        Authenticate a user and return an access token.
+
+        Parameters
+        ----------
+        username : str
+            The email address of the user.
+        password : str
+            The password for the user account.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the access token.
+
+        Raises
+        ------
+        UserNotFoundError
+            If the user does not exist.
+        IncorrectCredentialsError
+            If the credentials are incorrect.
+        UserNotConfirmedError
+            If the user has not confirmed their email.
+        InternalServerError
+            If login fails due to an unexpected error.
+
+        """
         logger.info('Received login request.')
         cogn_ex = self.client.exceptions
         exception_map = {
@@ -106,6 +204,25 @@ class CognitoClient:
         }
 
     def _compute_secret_hash(self, username: str) -> str:
+        """
+        Compute the secret hash for AWS Cognito authentication.
+
+        Parameters
+        ----------
+        username : str
+            The email address of the user.
+
+        Returns
+        -------
+        str
+            The computed secret hash.
+
+        Raises
+        ------
+        MissingSecretError
+            If the client secret is missing in the settings.
+
+        """
         if not self.settings.cognito_client_secret:
             raise auth_exc.MissingSecretError
         message = username + str(self.settings.cognito_client_id)
