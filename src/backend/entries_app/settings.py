@@ -1,7 +1,29 @@
+"""The module providing Pydantic settings for the database connection."""
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class DBSettings(BaseSettings):
+    """
+    Pydantic settings model for the database connection.
+
+    Attributes
+    ----------
+    db_user : str
+        Database username.
+    db_password : str
+        Database password.
+    db_host : str
+        Database host address.
+    db_port : int
+        Database port number (default: 5432).
+    db_name : str
+        Name of the database.
+    model_config : SettingsConfigDict
+        Configuration for loading settings from an environment file.
+        The file is expected to be located at 'src/backend/entries_app/.env'.
+
+    """
+
     db_user: str = ''
     db_password: str = ''
     db_host: str = ''

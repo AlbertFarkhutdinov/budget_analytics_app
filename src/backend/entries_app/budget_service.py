@@ -1,3 +1,4 @@
+"""The module providing a class for managing budget entries in a database."""
 import io
 
 import pandas as pd
@@ -13,17 +14,41 @@ MSG_FIELD = 'message'
 
 
 class BudgetService:
+    """Service class for managing budget entries in a database."""
 
     def __init__(
         self,
         engine: sql.Engine,
     ) -> None:
+        """
+        Initialize the BudgetService.
+
+        Parameters
+        ----------
+        engine : sql.Engine
+            SQLAlchemy database engine.
+
+        """
         self.engine = engine
 
     def create_entry(
         self,
         entry: BudgetEntrySchema,
     ) -> dict[str, str]:
+        """
+        Create a new budget entry.
+
+        Parameters
+        ----------
+        entry : BudgetEntrySchema
+            The budget entry schema containing the entry details.
+
+        Returns
+        -------
+        dict
+            A success message indicating the entry was added.
+
+        """
         with Session(self.engine) as session:
             db_entry = BudgetEntry(**entry.model_dump(exclude_unset=True))
             session.add(db_entry)
@@ -32,6 +57,16 @@ class BudgetService:
             return {MSG_FIELD: 'Entry is added successfully.'}
 
     def get_entries_info(self) -> dict[str, str | int]:
+        """
+        Return summary information about the budget entries.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the number of entries, date range,
+            number of unique categories, and number of unique persons.
+
+        """
         with Session(self.engine) as session:
             summary = session.query(
                 sql.func.count(BudgetEntry.id),
@@ -53,6 +88,22 @@ class BudgetService:
         skip: int = 0,
         limit: int = 10,
     ) -> list[BudgetEntry]:
+        """
+        Return a paginated list of budget entries ordered by date and ID.
+
+        Parameters
+        ----------
+        skip : int, optional
+            Number of entries to skip, by default 0.
+        limit : int, optional
+            Maximum number of entries to return, by default 10.
+
+        Returns
+        -------
+        list of BudgetEntry
+            A list of budget entries.
+
+        """
         stmt = (
             sql.select(BudgetEntry)
             .order_by(BudgetEntry.date.desc())
@@ -67,6 +118,20 @@ class BudgetService:
         self,
         updated_entries: list[BudgetEntrySchema],
     ) -> dict[str, str]:
+        """
+        Update multiple budget entries.
+
+        Parameters
+        ----------
+        updated_entries : list of BudgetEntrySchema
+            A list of budget entry schemas with updated data.
+
+        Returns
+        -------
+        dict
+            A success message indicating the entries were updated.
+
+        """
         with Session(self.engine) as session:
             for updated_entry in updated_entries:
                 self._update_entry(
@@ -80,6 +145,20 @@ class BudgetService:
         self,
         uploaded_entries: UploadFile,
     ) -> dict[str, str]:
+        """
+        Upload and save budget entries from a CSV file.
+
+        Parameters
+        ----------
+        uploaded_entries : UploadFile
+            The uploaded CSV file containing budget entries.
+
+        Returns
+        -------
+        dict
+            A success message indicating the number of uploaded entries.
+
+        """
         if not uploaded_entries:
             raise NoFileUploaded
         df = self._process_upload_entries(uploaded_entries=uploaded_entries)
@@ -97,6 +176,15 @@ class BudgetService:
             }
 
     def delete_all_entries(self) -> dict[str, str]:
+        """
+        Delete all budget entries from the database.
+
+        Returns
+        -------
+        dict
+            A success message indicating all entries were deleted.
+
+        """
         with Session(self.engine) as session:
             session.query(BudgetEntry).delete()
             session.commit()
@@ -108,6 +196,17 @@ class BudgetService:
         updated_entry: BudgetEntrySchema,
         session: Session,
     ) -> None:
+        """
+        Update or insert a single budget entry.
+
+        Parameters
+        ----------
+        updated_entry : BudgetEntrySchema
+            The budget entry schema with updated data.
+        session : Session
+            The database session.
+
+        """
         stmt = (
             sql.select(BudgetEntry)
             .where(BudgetEntry.id.in_([updated_entry.id]))
@@ -130,6 +229,25 @@ class BudgetService:
         cls,
         uploaded_entries: UploadFile,
     ) -> pd.DataFrame:
+        """
+        Process and validate uploaded CSV entries.
+
+        Parameters
+        ----------
+        uploaded_entries : UploadFile
+            The uploaded CSV file.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing the validated budget entries.
+
+        Raises
+        ------
+        MissedColumnsError
+            If required columns are missing from the uploaded file.
+
+        """
         df = pd.read_csv(
             io.StringIO(uploaded_entries.file.read().decode('utf-8')),
             sep=';',

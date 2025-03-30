@@ -1,3 +1,4 @@
+"""The module provides function for creating database."""
 import sqlalchemy as sql
 
 from backend.entries_app.settings import DBSettings
@@ -6,6 +7,13 @@ db_settings = DBSettings()
 
 
 def create_postgres_database() -> None:
+    """
+    Create a PostgreSQL database if it does not already exist.
+
+    This function connects to the PostgreSQL server using a temporary engine,
+    checks whether the specified database exists, and creates it if necessary.
+
+    """
     temp_engine = sql.create_engine(
         sql.URL.create(
             drivername='postgresql',
@@ -39,6 +47,15 @@ def create_postgres_database() -> None:
 
 
 def get_engine() -> sql.Engine:
+    """
+    Create and return a SQLAlchemy engine for the application's database.
+
+    Returns
+    -------
+    sqlalchemy.Engine
+        SQLAlchemy engine connected to the specified database.
+
+    """
     return sql.create_engine(
         sql.URL.create(
             drivername='postgresql',
