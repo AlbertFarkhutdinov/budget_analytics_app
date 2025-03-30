@@ -1,4 +1,10 @@
-"""The module contains the interface for work with S3 storage."""
+"""
+Module providing an interface for interacting with S3 storage.
+
+This module defines a client class for handling S3 operations such as listing,
+saving, loading, and deleting objects.
+
+"""
 import json
 import logging
 from pathlib import Path
@@ -15,10 +21,10 @@ logger = logging.getLogger(__name__)
 
 
 class S3Client:
-    """The interface for work with S3 storage."""
+    """Interface for interacting with S3 storage."""
 
     def __init__(self) -> None:
-        """Initialize self. See help(type(self)) for accurate signature."""
+        """Initialize the S3 client with configuration settings."""
         self.s3config = S3Settings()
         self.bucket = self.s3config.s3_bucket
         self.s3 = boto3.client(
@@ -28,11 +34,38 @@ class S3Client:
         )
 
     def get_s3path(self, remote_path: str) -> str:
+        """
+        Construct a S3 path.
+
+        Parameters
+        ----------
+        remote_path : str
+            The relative path of the object in S3.
+
+        Returns
+        -------
+        str
+            The full S3 URI.
+
+        """
         s3path = Path(self.bucket) / remote_path
         return f's3://{s3path}'
 
     def list_directory(self, *directories) -> list[str]:
-        """List a directory."""
+        """
+        List the contents of a directory in S3.
+
+        Parameters
+        ----------
+        *directories : str
+            The directory path components.
+
+        Returns
+        -------
+        list of str
+            A list of object keys in the specified directory.
+
+        """
         prefix = str(Path('/').joinpath(*directories)).strip('/')
         try:
             response = self.s3.list_objects_v2(
@@ -52,7 +85,17 @@ class S3Client:
         json_data: ReportType,
         remote_path: str,
     ) -> None:
-        """Save an object to S3."""
+        """
+        Save a JSON object to S3.
+
+        Parameters
+        ----------
+        json_data : ReportType
+            The data to store in S3.
+        remote_path : str
+            The target S3 path.
+
+        """
         try:
             self.s3.put_object(
                 Bucket=self.bucket,
@@ -68,7 +111,20 @@ class S3Client:
         )
 
     def load_object(self, remote_path: str) -> ReportType:
-        """Load an object from S3."""
+        """
+        Load a JSON object from S3.
+
+        Parameters
+        ----------
+        remote_path : str
+            The S3 path to retrieve.
+
+        Returns
+        -------
+        ReportType
+            The retrieved JSON data.
+
+        """
         try:
             response = self.s3.get_object(
                 Bucket=self.bucket,
@@ -91,7 +147,15 @@ class S3Client:
         return json_data
 
     def remove_object(self, remote_path: str) -> None:
-        """Remove an object from S3."""
+        """
+        Remove an object from S3.
+
+        Parameters
+        ----------
+        remote_path : str
+            The S3 path to delete.
+
+        """
         try:
             self.s3.delete_object(
                 Bucket=self.bucket,

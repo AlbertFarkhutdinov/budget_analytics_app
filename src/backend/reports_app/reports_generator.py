@@ -1,3 +1,4 @@
+"""Module for generating financial reports from a database."""
 from enum import Enum
 
 import pandas as pd
@@ -13,12 +14,16 @@ ReportsType = dict[str, ReportType]
 
 
 class TimeInterval(Enum):
+    """Enumeration for different time intervals used in reports."""
+
     month: str = 'month'
     year: str = 'year'
     total: str = 'total'
 
 
 class Column(Enum):
+    """Enumeration for column names used in financial data."""
+
     year: str = 'year'
     month: str = 'month'
     date: str = 'date'
@@ -27,14 +32,34 @@ class Column(Enum):
 
 
 class ReportsGenerator:
+    """Class for generating financial reports based on budget entries."""
 
     def __init__(
         self,
         engine: sql.Engine,
     ) -> None:
+        """
+        Initialize ReportsGenerator.
+
+        Parameters
+        ----------
+        engine : sql.Engine
+            SQLAlchemy database engine for executing queries.
+
+        """
         self.engine = engine
 
     def expenses_per_category(self) -> ReportsType:
+        """
+        Generate expense reports categorized by time intervals.
+
+        Returns
+        -------
+        ReportsType
+            A dictionary containing total and interval-based expenses
+            per category.
+
+        """
         grouped_df = self._fetch_data(query=sql.select(BudgetEntry))
         reports = {}
         for field in TimeInterval:
@@ -64,6 +89,16 @@ class ReportsGenerator:
         return reports
 
     def expenses_per_interval(self) -> ReportsType:
+        """
+        Generate expense reports grouped by category and time intervals.
+
+        Returns
+        -------
+        ReportsType
+            A dictionary containing total and interval-based expenses
+            per category.
+
+        """
         grouped_df = self._fetch_data(query=sql.select(BudgetEntry))
         reports = {}
         for category, group in grouped_df.groupby(Column.category.value):
@@ -88,7 +123,21 @@ class ReportsGenerator:
         return reports
 
     def _fetch_data(self, query: sql.Select) -> pd.DataFrame:
-        """Fetch data from RDS."""
+        """
+        Fetch financial data from the database.
+
+        Parameters
+        ----------
+        query : sql.Select
+            SQLAlchemy query to fetch budget entries.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing processed financial data
+            with time-based aggregations.
+
+        """
         with self.engine.connect() as connection:
             amount_column = Column.amount.value
             expenses = (
