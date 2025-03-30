@@ -38,12 +38,12 @@ class ReportsGenerator:
         grouped_df = self._fetch_data(query=sql.select(BudgetEntry))
         reports = {}
         for field in TimeInterval:
-            if field.value == TimeInterval.total:
+            if field == TimeInterval.total:
                 reports[field.value] = {
                     field.value: (
                         grouped_df
-                        .groupby(Column.category)
-                        .sum(numeric_only=True)[Column.amount]
+                        .groupby(Column.category.value)
+                        .sum(numeric_only=True)[Column.amount.value]
                         .round(2)
                         .reset_index()
                         .to_dict('list')
@@ -53,8 +53,8 @@ class ReportsGenerator:
                 reports[field.value] = {
                     str(interval): (
                         group
-                        .groupby(Column.category)
-                        .sum(numeric_only=True)[Column.amount]
+                        .groupby(Column.category.value)
+                        .sum(numeric_only=True)[Column.amount.value]
                         .round(2)
                         .reset_index()
                         .to_dict('list')
@@ -66,20 +66,21 @@ class ReportsGenerator:
     def expenses_per_interval(self) -> ReportsType:
         grouped_df = self._fetch_data(query=sql.select(BudgetEntry))
         reports = {}
-        for category, group in grouped_df.groupby(Column.category):
+        for category, group in grouped_df.groupby(Column.category.value):
+            reports[str(category)] = {}
             for field in TimeInterval:
-                if field.value == TimeInterval.total:
+                if field == TimeInterval.total:
                     reports[str(category)][field.value] = {
                         field.value: [field.value],
-                        Column.amount: [
-                            float(group[Column.amount].sum().round(2)),
+                        Column.amount.value: [
+                            float(group[Column.amount.value].sum().round(2)),
                         ],
                     }
                 else:
                     reports[str(category)][field.value] = (
                         group
                         .groupby(field.value)
-                        .sum(numeric_only=True)[Column.amount]
+                        .sum(numeric_only=True)[Column.amount.value]
                         .round(2)
                         .reset_index()
                         .to_dict('list')
@@ -89,16 +90,17 @@ class ReportsGenerator:
     def _fetch_data(self, query: sql.Select) -> pd.DataFrame:
         """Fetch data from RDS."""
         with self.engine.connect() as connection:
+            amount_column = Column.amount.value
             expenses = (
                 pd.read_sql(query, connection)
-                .query(f'{Column.amount} > 0')
+                .query(f'{amount_column} > 0')
             )
             columns = [col.name for col in Column if col.name != 'amount']
             return (
                 expenses
                 .assign(
-                    year=expenses[Column.date].dt.year.astype(str),
-                    month=expenses[Column.date].dt.strftime('%Y-%m'),
+                    year=expenses[Column.date.value].dt.year.astype(str),
+                    month=expenses[Column.date.value].dt.strftime('%Y-%m'),
                 )
                 .groupby(columns)
                 .sum(numeric_only=True)
