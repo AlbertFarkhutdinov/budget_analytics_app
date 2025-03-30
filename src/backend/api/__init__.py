@@ -11,11 +11,4 @@ Modules
     - `reports`: Provides report generation and retrieval functionality.
     - `run_backend`: Entry point for launching the FastAPI application.
 
-Examples
---------
-    To start the backend, run:
-    ```
-    python -m backend.api.run_backend
-    ```
-
 """

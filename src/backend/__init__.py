@@ -11,4 +11,11 @@ Subpackages
 - entries_app: Manages budget entries, transactions, and related data.
 - reports_app: Generates and manages financial reports.
 
+Examples
+--------
+To start the backend, run:
+```
+python -m backend.api.run_backend
+```
+
 """
