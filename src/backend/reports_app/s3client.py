@@ -1,14 +1,17 @@
 """The module contains the interface for work with S3 storage."""
 import json
+import logging
 from pathlib import Path
 
-import fsspec
+import boto3
+from botocore.exceptions import ClientError, NoCredentialsError
 from dotenv import load_dotenv
 
 from backend.reports_app.reports_generator import ReportType
 from backend.reports_app.settings import S3Settings
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 
 class S3Client:
@@ -17,62 +20,86 @@ class S3Client:
     def __init__(self) -> None:
         """Initialize self. See help(type(self)) for accurate signature."""
         self.s3config = S3Settings()
-        self.bucket = Path(self.s3config.s3_bucket)
-        self.filesystem = None
-        self.reload()
-
-    def reload(self) -> None:
-        """Reload S3 filesystem."""
-        self.filesystem = fsspec.filesystem(
-            protocol='s3',
-            key=self.s3config.s3_access_key_id,
-            secret=self.s3config.s3_secret_access_key,
+        self.bucket = self.s3config.s3_bucket
+        self.s3 = boto3.client(
+            's3',
+            aws_access_key_id=self.s3config.s3_access_key_id,
+            aws_secret_access_key=self.s3config.s3_secret_access_key,
         )
-        self.filesystem.clear_instance_cache()
 
-    def get_s3path(
-        self,
-        remote_path: str,
-        *,
-        with_root: bool = False,
-    ) -> str:
-        s3path = self.bucket / remote_path
-        if with_root:
-            return f's3://{s3path}'
-        return str(s3path)
+    def get_s3path(self, remote_path: str) -> str:
+        s3path = Path(self.bucket) / remote_path
+        return f's3://{s3path}'
 
     def list_directory(self, *directories) -> list[str]:
         """List a directory."""
-        return self.filesystem.ls(str(self.bucket.joinpath(*directories)))
+        prefix = str(Path('/').joinpath(*directories)).strip('/')
+        try:
+            response = self.s3.list_objects_v2(
+                Bucket=self.bucket,
+                Prefix=prefix,
+            )
+        except ClientError as exc:
+            logger.error('Error listing directory: %s', str(exc))
+            return []
+        return [
+            resp_obj['Key']
+            for resp_obj in response.get('Contents', [])
+        ]
 
-    def download_file(self, remote_path: str, local_path: str) -> None:
-        """Download single file from a remote storage."""
-        return self.filesystem.get_file(
-            rpath=self.get_s3path(remote_path),
-            lpath=local_path,
-        )
-
-    def upload_file(self, local_path: str, remote_path: str) -> None:
-        """Upload single file to a remote storage."""
-        return self.filesystem.put_file(
-            lpath=local_path,
-            rpath=self.get_s3path(remote_path),
-        )
-
-    def save_json(
+    def save_object(
         self,
         json_data: ReportType,
         remote_path: str,
     ) -> None:
-        """Save JSON data to S3."""
-        s3file = self.get_s3path(remote_path=remote_path)
-        with self.filesystem.open(s3file, mode='w') as s3file:
-            json.dump(json_data, s3file)
+        """Save an object to S3."""
+        try:
+            self.s3.put_object(
+                Bucket=self.bucket,
+                Key=remote_path,
+                Body=json.dumps(json_data),
+                ContentType='application/json',
+            )
+        except (NoCredentialsError, ClientError) as exc:
+            logger.error('Error saving JSON: %s', str(exc))
+        logger.info(
+            'Data are saved into "%s"',
+            self.get_s3path(remote_path=remote_path),
+        )
 
-    def load_json(self, remote_path: str) -> ReportType:
-        """Load JSON data from S3."""
-        s3file = self.get_s3path(remote_path=remote_path)
-        if not self.filesystem.exists(s3file):
+    def load_object(self, remote_path: str) -> ReportType:
+        """Load an object from S3."""
+        try:
+            response = self.s3.get_object(
+                Bucket=self.bucket,
+                Key=remote_path,
+            )
+        except self.s3.exceptions.NoSuchKey:
+            logger.warning(
+                '"%s" is not found',
+                self.get_s3path(remote_path=remote_path),
+            )
             return {}
-        with self.filesystem.open(s3file) as s3file:
-            return json.load(s3file)
+        except (NoCredentialsError, ClientError) as exc:
+            logger.error('Error loading JSON: %s', str(exc))
+            return {}
+        json_data = json.loads(response['Body'].read().decode('utf-8'))
+        logger.info(
+            'Data are loaded from "%s"',
+            self.get_s3path(remote_path=remote_path),
+        )
+        return json_data
+
+    def remove_object(self, remote_path: str) -> None:
+        """Remove an object from S3."""
+        try:
+            self.s3.delete_object(
+                Bucket=self.bucket,
+                Key=remote_path,
+            )
+        except (NoCredentialsError, ClientError) as exc:
+            logger.error('Error removing object: %s', str(exc))
+        logger.info(
+            'Data are removed from "%s"',
+            self.get_s3path(remote_path=remote_path),
+        )

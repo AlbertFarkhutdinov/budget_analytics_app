@@ -48,7 +48,7 @@ class APIClient:
                 timeout=TIMEOUT,
             )
         except requests.exceptions.RequestException as exc:
-            logger.error('API request failed: %s', str(exc))  # noqa: TRY400
+            logger.error('API request failed: %s', str(exc))
         try:
             return response.json()
         except AttributeError:

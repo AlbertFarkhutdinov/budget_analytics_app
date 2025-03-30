@@ -25,7 +25,7 @@ class ReportsService:
             raise InvalidReportType
 
         report = report_method()
-        self.s3client.save_json(
+        self.s3client.save_object(
             remote_path=f'reports/{report_name}.json',
             json_data=report,
         )
@@ -33,7 +33,7 @@ class ReportsService:
 
     def get_latest_report(self, report_name: str) -> ReportsType:
         """Fetch the latest report."""
-        report = self.s3client.load_json(
+        report = self.s3client.load_object(
             remote_path=f'reports/{report_name}.json',
         )
         if report:
