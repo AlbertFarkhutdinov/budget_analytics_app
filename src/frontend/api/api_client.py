@@ -1,3 +1,11 @@
+"""
+The module provides an API client for interacting with a backend server.
+
+It includes functionality for making authenticated API requests
+and handling responses.
+
+"""
+
 import logging
 from io import BytesIO
 
@@ -16,10 +24,19 @@ ReportsType = dict[str, ReportType]
 
 
 class APIClient:
-    """Handles API requests."""
+    """Handles API requests, including authentication and error handling."""
 
     @property
     def token(self) -> str:
+        """
+        Return the authentication token from Streamlit session state.
+
+        Returns
+        -------
+        str
+            The authentication token if available, otherwise an empty string.
+
+        """
         return st.session_state.get('token', '')
 
     def make_request(
@@ -29,7 +46,26 @@ class APIClient:
         json_data: EntryType | list[EntryType] | None = None,
         files: dict[str, tuple[str, BytesIO, str]] | None = None,
     ) -> dict[str, str | int] | ReportsType:
-        """Unified method for handling API requests."""
+        """
+        Send a request to API and return a response.
+
+        Parameters
+        ----------
+        endpoint : str
+            The API endpoint to call.
+        method : str, optional
+            The HTTP method to use (default is 'POST').
+        json_data : EntryType or list of EntryType, optional
+            JSON object to send with the request.
+        files : dict, optional
+            Files to upload.
+
+        Returns
+        -------
+        dict or ReportsType
+            The JSON response from the server, or an error message.
+
+        """
         url = f'{API_BASE_URL}{endpoint}'
 
         response = None
@@ -57,7 +93,16 @@ class APIClient:
             return {'detail': 'Failed to decode response.'}
 
     def _get_headers(self) -> dict[str, str]:
-        """Return authorization headers if the user is logged in."""
+        """
+        Return authorization headers if the user is logged in.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the authorization header
+            if the user is authenticated.
+
+        """
         if self.token:
             return {'Authorization': f'Bearer {self.token}'}
         return {}
