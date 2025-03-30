@@ -118,7 +118,10 @@ class ReportsPage(BasePage):
                 method(last_report)
 
     @classmethod
-    def _plot_expenses_per_category(cls, reports: ReportsType) -> None:
+    def _plot_expenses_per_category(  # noqa: WPS210
+        cls,
+        reports: ReportsType,
+    ) -> None:
         """
         Plot a report of expenses per category.
 

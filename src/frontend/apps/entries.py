@@ -15,7 +15,7 @@ from frontend.api.entries_api_client import EntriesAPIClient
 from frontend.apps.base_page import BasePage
 
 
-class EntriesPage(BasePage):
+class EntriesPage(BasePage):  # noqa: WPS214
     """
     A class to handle the UI and logic for managing budget entries.
 

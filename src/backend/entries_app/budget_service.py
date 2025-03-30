@@ -13,7 +13,7 @@ from backend.entries_app.models import BudgetEntry, BudgetEntrySchema
 MSG_FIELD = 'message'
 
 
-class BudgetService:
+class BudgetService:  # noqa: WPS214
     """Service class for managing budget entries in a database."""
 
     def __init__(
