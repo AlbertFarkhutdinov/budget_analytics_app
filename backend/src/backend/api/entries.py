@@ -5,12 +5,12 @@ This module defines endpoints for managing budget entries, including creating,
 reading, updating, and deleting entries. It also supports file uploads.
 
 """
+from custom_logging import config_logging
 from fastapi import APIRouter, UploadFile
 
 from backend.entries_app.budget_service import BudgetService
 from backend.entries_app.db_engine import create_postgres_database, get_engine
 from backend.entries_app.models import Base, BudgetEntry, BudgetEntrySchema
-from custom_logging import config_logging
 
 config_logging()
 create_postgres_database()

@@ -1,7 +1,9 @@
 """Tests for `auxiliary.record_factory` objects."""
 import logging
 import tracemalloc
-from unittest.mock import MagicMock, patch
+from collections.abc import Generator
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -23,8 +25,9 @@ class TestRecordFactory:
         """Teardown any state that was previously setup."""
         tracemalloc.stop()
 
+    @classmethod
     @pytest.fixture
-    def mock_traced_memory(self) -> None:
+    def mock_traced_memory(cls) -> Generator[MagicMock | AsyncMock, Any]:
         """
         Fixture to set traced memory values during tests.
 
@@ -37,8 +40,9 @@ class TestRecordFactory:
         with patch('tracemalloc.get_traced_memory') as traced_memory_mock:
             yield traced_memory_mock
 
+    @classmethod
     def test_record_factory_attributes(
-        self,
+        cls,
         mock_traced_memory: MagicMock,
     ) -> None:
         """
@@ -64,10 +68,12 @@ class TestRecordFactory:
             exc_info=None,
         )
         assert getattr(record, 'current_memory', None) == 1
-        assert getattr(record, 'peak_memory', None) == 10
+        expected = 10
+        assert getattr(record, 'peak_memory', None) == expected
 
+    @classmethod
     def test_record_factory_with_default_log_record(
-        self,
+        cls,
         mock_traced_memory: MagicMock,
     ) -> None:
         """
@@ -94,4 +100,5 @@ class TestRecordFactory:
             exc_info=None,
         )
         assert getattr(record, 'current_memory', None) == 1
-        assert getattr(record, 'peak_memory', None) == 10
+        expected = 10
+        assert getattr(record, 'peak_memory', None) == expected

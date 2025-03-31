@@ -8,13 +8,14 @@ It provides authentication, expense tracking, and reporting functionality.
 import logging
 
 import streamlit as st
-
 from custom_logging import config_logging
+
 from frontend.apps.auth import AuthPage
 from frontend.apps.entries import EntriesPage
 from frontend.apps.page_state import PageState
 from frontend.apps.reports import ReportsPage
 
+logger = logging.getLogger(__name__)
 st.set_page_config(
     page_title='Budget Analysis',
 )
@@ -108,9 +109,9 @@ class MainApp:
 
 if __name__ == '__main__':
     config_logging()
-    logging.info('Frontend is started.')
+    logger.info('Frontend is running.')
     app = MainApp()
-    is_with_auth = False
+    is_with_auth = True
     if is_with_auth:
         app.run()
     else:

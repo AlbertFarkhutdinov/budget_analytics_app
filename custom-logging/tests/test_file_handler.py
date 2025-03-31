@@ -1,13 +1,12 @@
 """Tests for `auxiliary.file_handler` objects."""
 import json
 import logging
-import os
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
 from custom_logging import get_file_handler
 
-log_filepath = Path('.').joinpath('test.log')
+log_filepath = Path().joinpath('test.log')
 
 
 class TestFileHandler:
@@ -17,19 +16,22 @@ class TestFileHandler:
     def teardown_class(cls) -> None:
         """Teardown any state that was previously setup."""
         if log_filepath.exists():
-            os.remove(log_filepath)
+            log_filepath.unlink(missing_ok=True)
 
-    def test_get_file_handler_returns_handler(self) -> None:
+    @classmethod
+    def test_get_file_handler_returns_handler(cls) -> None:
         """Test type of returnable handler."""
         logging_handler = get_file_handler(str(log_filepath))
         assert isinstance(logging_handler, logging.Handler)
 
-    def test_get_file_handler_default_logging_level(self) -> None:
+    @classmethod
+    def test_get_file_handler_default_logging_level(cls) -> None:
         """Test default level of returnable handler."""
         logging_handler = get_file_handler(str(log_filepath))
         assert logging_handler.level == logging.INFO
 
-    def test_get_file_handler_custom_logging_level(self) -> None:
+    @classmethod
+    def test_get_file_handler_custom_logging_level(cls) -> None:
         """Test specified level of returnable handler."""
         logging_handler = get_file_handler(
             filename=str(log_filepath),
@@ -37,7 +39,8 @@ class TestFileHandler:
         )
         assert logging_handler.level == logging.DEBUG
 
-    def test_get_file_handler_is_rewritable(self) -> None:
+    @classmethod
+    def test_get_file_handler_is_rewritable(cls) -> None:
         """Test type and mode of rewritable handler."""
         logging_handler = get_file_handler(
             str(log_filepath),
@@ -46,7 +49,8 @@ class TestFileHandler:
         assert isinstance(logging_handler, logging.FileHandler)
         assert logging_handler.mode == 'w'
 
-    def test_get_file_handler_not_rewritable(self) -> None:
+    @classmethod
+    def test_get_file_handler_not_rewritable(cls) -> None:
         """Test type of non-rewritable handler."""
         logging_handler = get_file_handler(
             str(log_filepath),
@@ -54,7 +58,8 @@ class TestFileHandler:
         )
         assert isinstance(logging_handler, TimedRotatingFileHandler)
 
-    def test_get_file_handler_formatter(self) -> None:
+    @classmethod
+    def test_get_file_handler_formatter(cls) -> None:
         """Test format of handler's log messages."""
         logging_handler = get_file_handler(str(log_filepath))
         formatter = logging_handler.formatter
@@ -67,4 +72,4 @@ class TestFileHandler:
             'module': '%(module)s',
             'funcName': '%(funcName)s',
         })
-        assert formatter._fmt == log_format  # noqa: WPS437
+        assert formatter._fmt == log_format  # noqa: SLF001,WPS437

@@ -7,9 +7,8 @@ It configures the necessary command-line arguments and runs the Streamlit CLI.
 """
 import sys
 
-from streamlit.web import cli as stcli
-
 from custom_logging import config_logging
+from streamlit.web import cli as stcli
 
 config_logging()
 

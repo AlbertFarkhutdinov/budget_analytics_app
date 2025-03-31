@@ -9,6 +9,7 @@ from custom_logging import ColoredFormatter
 class TestColoredFormatter:
     """Class with tests for `colored_formatter.ColoredFormatter`."""
 
+    @classmethod
     @pytest.mark.parametrize(('msg', 'logging_level', 'expected'), [
         (
             'Debug message',
@@ -37,7 +38,7 @@ class TestColoredFormatter:
         ),
     ])
     def test_format(
-        self,
+        cls,
         msg: str,
         logging_level: int,
         expected: str,

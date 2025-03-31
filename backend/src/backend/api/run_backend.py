@@ -8,14 +8,15 @@ API routers for authentication, budget entries, and reports.
 import logging
 
 import uvicorn
+from custom_logging import config_logging
 from fastapi import FastAPI
 
 from backend.api.auth import auth_router
 from backend.api.entries import entries_router
 from backend.api.reports import reports_router
-from custom_logging import config_logging
 
 config_logging()
+logger = logging.getLogger(__name__)
 app = FastAPI()
 app.include_router(auth_router, prefix='/auth')
 app.include_router(entries_router, prefix='/entries')
@@ -29,7 +30,7 @@ def start_backend() -> None:
     This function runs the application with predefined settings.
 
     """
-    logging.info('Backend is started.')
+    logger.info('Backend is running.')
     port = 8000
     reload = False
     uvicorn.run(

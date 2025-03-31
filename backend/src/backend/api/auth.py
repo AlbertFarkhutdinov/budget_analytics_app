@@ -7,12 +7,12 @@ confirmation, and login using AWS Cognito.
 """
 import logging
 
+from custom_logging import config_logging
 from fastapi import APIRouter
 
 from backend.auth_app.cognito_client import CognitoClient
 from backend.auth_app.models import UserConfirm, UserLogin
 from backend.auth_app.settings import AuthSettings
-from custom_logging import config_logging
 
 logger = logging.getLogger(__name__)
 
