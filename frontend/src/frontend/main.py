@@ -5,6 +5,7 @@ This module implements a Streamlit-based budget analysis application.
 It provides authentication, expense tracking, and reporting functionality.
 
 """
+import logging
 
 import streamlit as st
 
@@ -107,6 +108,7 @@ class MainApp:
 
 if __name__ == '__main__':
     config_logging()
+    logging.info('Frontend is started.')
     app = MainApp()
     is_with_auth = False
     if is_with_auth:

@@ -9,6 +9,10 @@ import sys
 
 from streamlit.web import cli as stcli
 
+from custom_logging import config_logging
+
+config_logging()
+
 
 def start_frontend() -> None:
     """

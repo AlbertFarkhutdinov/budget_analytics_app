@@ -1,0 +1,41 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "A budget analytics service using FastAPI, Streamlit, and AWS."
+authors = [
+    {name = "AlbertFarkhutdinov", email = "albertfarhutdinov@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    "boto3<1.38",
+    "custom-logging",
+    "fastapi<0.116",
+    "pandas<2.3",
+    "psycopg2-binary<2.10",
+    "pydantic<2.11",
+    "pydantic-settings<2.9",
+    "python-dotenv<1.2",
+    "python-multipart<0.1",
+    "sqlalchemy<2.1",
+    "uvicorn<0.35",
+]
+
+[tool.uv.sources]
+custom-logging = { path = "../custom-logging" }
+
+[dependency-groups]
+dev = [
+    "isort<6.1",
+    "pytest<8.4",
+    "pytest-cov<6.1",
+    "ruff<0.12",
+    "wemake-python-styleguide<1.2",
+]
+
+[project.scripts]
+backend = "backend.api.run_backend:start_backend"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

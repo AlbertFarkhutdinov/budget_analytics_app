@@ -5,13 +5,17 @@ This module initializes and starts the FastAPI application, including
 API routers for authentication, budget entries, and reports.
 
 """
+import logging
+
 import uvicorn
 from fastapi import FastAPI
 
 from backend.api.auth import auth_router
 from backend.api.entries import entries_router
 from backend.api.reports import reports_router
+from custom_logging import config_logging
 
+config_logging()
 app = FastAPI()
 app.include_router(auth_router, prefix='/auth')
 app.include_router(entries_router, prefix='/entries')
@@ -25,6 +29,7 @@ def start_backend() -> None:
     This function runs the application with predefined settings.
 
     """
+    logging.info('Backend is started.')
     port = 8000
     reload = False
     uvicorn.run(
