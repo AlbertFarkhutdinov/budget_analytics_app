@@ -6,6 +6,7 @@ It configures the necessary command-line arguments and runs the Streamlit CLI.
 
 """
 import sys
+from pathlib import Path
 
 from custom_logging import config_logging
 from streamlit.web import cli as stcli
@@ -24,7 +25,7 @@ def start_frontend() -> None:
     sys.argv = [
         'streamlit',
         'run',
-        'src/frontend/main.py',
+        str(Path(__file__).parent.joinpath('main.py')),
         '--server.port',
         '8501',
     ]

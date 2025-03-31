@@ -1,4 +1,6 @@
 """The module that provides Pydantic settings for the S3 storage."""
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +30,6 @@ class S3Settings(BaseSettings):
     s3_secret_access_key: str = ''
 
     model_config = SettingsConfigDict(
-        env_file='src/backend/reports_app/.env',
+        env_file=Path(__file__).parent.joinpath('.env'),
         env_file_encoding='utf-8',
     )

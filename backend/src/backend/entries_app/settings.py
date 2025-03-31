@@ -1,4 +1,6 @@
 """The module providing Pydantic settings for the database connection."""
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,6 +33,6 @@ class DBSettings(BaseSettings):
     db_name: str = ''
 
     model_config = SettingsConfigDict(
-        env_file='src/backend/entries_app/.env',
+        env_file=Path(__file__).parent.joinpath('.env'),
         env_file_encoding='utf-8',
     )
