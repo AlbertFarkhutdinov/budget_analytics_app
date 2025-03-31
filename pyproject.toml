@@ -24,6 +24,6 @@ dev = [
 ]
 
 [tool.uv.sources]
-custom-logging = { path = "custom-logging" }
-backend = { path = "backend" }
-frontend = { path = "frontend" }
+custom-logging = { path = "custom-logging", editable = true }
+backend = { path = "backend", editable = true }
+frontend = { path = "frontend", editable = true }
