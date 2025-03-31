@@ -1,0 +1,29 @@
+[project]
+name = "budget-analytics-app"
+version = "0.1.0"
+description = "A budget analytics service using FastAPI, Streamlit, and AWS."
+authors = [
+    {name = "AlbertFarkhutdinov", email = "albertfarhutdinov@gmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    "backend",
+    "custom-logging",
+    "frontend",
+]
+
+[dependency-groups]
+dev = [
+    "isort<6.1",
+    "pytest<8.4",
+    "pytest-cov<6.1",
+    "ruff<0.12",
+    "wemake-python-styleguide<1.2",
+]
+
+[tool.uv.sources]
+custom-logging = { path = "custom-logging", editable = true }
+backend = { path = "backend", editable = true }
+frontend = { path = "frontend", editable = true }

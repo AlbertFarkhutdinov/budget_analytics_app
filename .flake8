@@ -1,0 +1,4 @@
+[flake8]
+docstring-convention=numpy
+docstring_style=numpy
+extend-ignore=WPS410,WPS412
